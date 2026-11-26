@@ -65,7 +65,6 @@
     ::-webkit-scrollbar-thumb:hover {
       background: rgba(234, 88, 12, 0.75);
     }
-
   </style>
 </head>
 <body class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 antialiased selection:bg-brand-500 selection:text-white min-h-screen flex flex-col">
@@ -106,7 +105,7 @@
         </button>
       </div>
 
-      <!-- Left: Theme Toggle + Login/User Status -->
+      <!-- Left: Sync Button + Theme Toggle + Login/User Status -->
       <div class="flex items-center gap-2" id="headerAuthArea"></div>
     </div>
   </header>
@@ -192,7 +191,7 @@
         <button type="button" onclick="UI.navigate('home')" class="hover:text-brand-600 transition">صفحه خانه</button>
         <button type="button" onclick="UI.navigate('about')" class="hover:text-brand-600 transition">درباره ما</button>
         <button type="button" onclick="UI.navigate('contact')" class="hover:text-brand-600 transition">ارتباط با ما</button>
-        <button type="button" onclick="UI.resetDemoData()" class="text-rose-600 dark:text-rose-400 hover:underline">بازنشانی اطلاعات نمونه</button>
+        <button type="button" onclick="UI.syncFromSupabase(true)" class="text-brand-600 dark:text-brand-400 hover:underline">به‌روزرسانی از سرور</button>
       </div>
     </div>
   </footer>
@@ -203,6 +202,61 @@
   <div id="modalRoot" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-950/65 backdrop-blur-xs overflow-y-auto"></div>
 
   <script>
+    // =======================================================================
+    // 0. SUPABASE CLIENT CONFIG & REST HELPER
+    // =======================================================================
+    const SUPABASE_URL = 'https://giskluyvwinuyqlgdfuw.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_rInivX8hSrSzWNEeMiMbsw_cNEyJxrh';
+
+    const SB = {
+      headers(prefer = '') {
+        const h = {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`,
+          'Content-Type': 'application/json',
+        };
+        if (prefer) h['Prefer'] = prefer;
+        return h;
+      },
+
+      async select(table, query = '') {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}${query ? '?' + query : ''}`, {
+          method: 'GET',
+          headers: this.headers(),
+        });
+        if (!res.ok) {
+          throw new Error(`Supabase GET ${table} failed: ${res.status}`);
+        }
+        return await res.json();
+      },
+
+      async upsert(table, rows, onConflict = '') {
+        const payload = Array.isArray(rows) ? rows : [rows];
+        const conflictParam = onConflict ? `?on_conflict=${encodeURIComponent(onConflict)}` : '';
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}${conflictParam}`, {
+          method: 'POST',
+          headers: this.headers('resolution=merge-duplicates,return=representation'),
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) {
+          const txt = await res.text().catch(() => '');
+          throw new Error(`Supabase UPSERT ${table} failed: ${res.status} ${txt}`);
+        }
+        return await res.json().catch(() => []);
+      },
+
+      async deleteWhere(table, filterQuery) {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${filterQuery}`, {
+          method: 'DELETE',
+          headers: this.headers('return=minimal'),
+        });
+        if (!res.ok) {
+          const txt = await res.text().catch(() => '');
+          throw new Error(`Supabase DELETE ${table} failed: ${res.status} ${txt}`);
+        }
+      },
+    };
+
     // =======================================================================
     // 1. EXERCISE CATALOG (63 EXERCISES ACROSS 5 GROUPS - COACH & ASSIGNED ONLY)
     // =======================================================================
@@ -371,22 +425,15 @@
     });
 
     // =======================================================================
-    // 3. STATE MANAGEMENT & PERSISTENCE (LOCALSTORAGE)
+    // 2. STATE MANAGEMENT & PERSISTENCE (SUPABASE + LOCALSTORAGE CACHE)
     // =======================================================================
-    const STORAGE_KEY = 'ACADEMY_PRO_STATE_V1';
+    const STORAGE_KEY = 'MEHDI_FIT_STATE_V2';
 
     function uid(prefix = 'id') {
-      return prefix + '_' + Math.random().toString(36).slice(2, 9);
+      return prefix + '_' + Math.random().toString(36).slice(2, 10);
     }
 
     function createInitialState() {
-      const s1 = 'stu_ali';
-      const s2 = 'stu_sara';
-      const s3 = 'stu_reza';
-      const d1 = 'day_1';
-      const d2 = 'day_2';
-      const d3 = 'day_3';
-
       return {
         theme: 'light',
         currentRoute: 'home',
@@ -396,9 +443,10 @@
           name: 'مهمان',
         },
         coachProfile: {
+          id: 'coach_main',
           name: 'مهدی مرادی',
           title: 'مربی بین‌المللی بدنسازی و فیزیک، متخصص آناتومی و برنامه‌نویسی تمرینی',
-          fullBodyPhoto: '', // Optional uploaded full-body photo dataURL
+          fullBodyPhoto: '',
           bio: 'با بیش از ۱۲ سال سابقه حرفه‌ای در تربیت ورزشکاران فیزیک، بادی‌کلاسیک و بازتوانی حرکتی. تمرکز اصلی من طراحی برنامه‌های علمی، شخصی‌سازی‌شده و کاملاً اصولی بر اساس آناتومی و بیومکانیک بدن هر شاگرد است.',
           credentials: [
             'مربی رسمی فدراسیون بدنسازی و پرورش اندام',
@@ -411,67 +459,15 @@
             programsDesigned: '۱۸۰۰+',
           },
         },
-        students: [
-          { id: s1, name: 'علی رضایی', code: '1001', goal: 'افزایش حجم عضلانی خشک', phone: '09120001001' },
-          { id: s2, name: 'سارا احمدی', code: '1002', goal: 'فرم‌دهی و تقویت بالاتنه', phone: '09120001002' },
-          { id: s3, name: 'رضا کاظمی', code: '1003', goal: 'کاهش چربی و حفظ قدرت', phone: '09120001003' },
-        ],
-        programs: {
-          [s1]: [
-            {
-              id: d1,
-              title: 'روز اول: سینه و پشت بازو',
-              items: [
-                { id: 'it_1', exId: EX_BY_NAME['پرس سینه هالتر'].id, sets: 4, reps: '۸ تا ۱۰', rest: '۹۰ ثانیه', note: 'دو ست گرم‌کردن سبک قبل از ست اصلی؛ آرنج‌ها زاویه ۴۵ درجه.' },
-                { id: 'it_2', exId: EX_BY_NAME['پرس بالا سینه دمبل'].id, sets: 3, reps: '۱۰ تا ۱۲', rest: '۷۵ ثانیه', note: 'کنترل کامل در فاز پایین آوردن دمبل‌ها.' },
-                { id: 'it_3', exId: EX_BY_NAME['کراس اور'].id, sets: 3, reps: '۱۲ تا ۱۵', rest: '۶۰ ثانیه', note: 'مکث یک ثانیه‌ای در نقطه انقباض سینه.' },
-                { id: 'it_4', exId: EX_BY_NAME['پشت بازو طناب'].id, sets: 4, reps: '۱۲', rest: '۶۰ ثانیه', note: 'باز کردن کامل طناب در انتهای حرکت بدون تکان دادن سرشانه.' },
-              ],
-            },
-            {
-              id: d2,
-              title: 'روز دوم: زیر بغل و جلو بازو',
-              items: [
-                { id: 'it_5', exId: EX_BY_NAME['بارفیکس'].id, sets: 4, reps: 'تا ناتوانی فنی', rest: '۹۰ ثانیه', note: 'شروع حرکت با انقباض عضلات پشت و سینه رو به بالا.' },
-                { id: 'it_6', exId: EX_BY_NAME['زیر بغل قایقی'].id, sets: 3, reps: '۱۰ تا ۱۲', rest: '۷۵ ثانیه', note: 'عدم خم کردن بیش از حد کمر به جلو.' },
-                { id: 'it_7', exId: EX_BY_NAME['جلو بازو هالتر'].id, sets: 3, reps: '۱۰', rest: '۷۵ ثانیه', note: 'آرنج‌ها کاملاً چسبیده به کناره‌های بدن.' },
-              ],
-            },
-          ],
-          [s2]: [
-            {
-              id: d3,
-              title: 'روز اول: سرشانه، پشت بازو و جلو بازو',
-              items: [
-                { id: 'it_8', exId: EX_BY_NAME['نشر جانب دمبل'].id, sets: 4, reps: '۱۵', rest: '۶۰ ثانیه', note: 'وزنه سبک و کنترل‌شده تا سطح شانه.' },
-                { id: 'it_9', exId: EX_BY_NAME['جلو بازو دمبل چکشی'].id, sets: 3, reps: '۱۲', rest: '۶۰ ثانیه', note: 'حفظ مچ دست در حالت خنثی.' },
-              ],
-            },
-          ],
-          [s3]: [],
-        },
+        students: [],
+        programs: {}, // { [studentId]: [ { id, title, sortOrder, items: [ { id, exId, sets, reps, rest, note, sortOrder } ] } ] }
         completedItems: {},
-        tickets: [
-          {
-            id: 'tkt_1',
-            authorRole: 'student',
-            authorId: s1,
-            authorName: 'علی رضایی',
-            subject: 'سوال درباره استراحت بین ست‌های پرس سینه',
-            message: 'استاد سلام، در ست سوم پرس سینه هالتر اگر استراحت را به ۲ دقیقه برسانم اشکالی دارد؟',
-            createdAt: '۱۴۰۳/۰۸/۱۲ - ۱۸:۲۰',
-            replies: [
-              {
-                sender: 'مهدی مرادی (مربی)',
-                text: 'سلام علی جان. در ست‌های سنگین تا ۲ دقیقه زمان استراحت کاملاً مجاز است تا کیفیت اجرای تکرارهای بعدی حفظ شود.',
-                time: '۱۴۰۳/۰۸/۱۲ - ۱۹:۰۵',
-              },
-            ],
-          },
-        ],
+        tickets: [],
         ui: {
-          coachSelectedStudentId: s1,
-          coachExpandedDays: { [d1]: true, [d2]: false },
+          coachTab: 'program', // 'program' | 'inbox'
+          coachTicketFilter: 'all', // 'all' | 'unread' | 'open' | 'answered'
+          coachSelectedStudentId: null,
+          coachExpandedDays: {},
           coachExpandedItems: {},
           coachPicker: {
             open: false,
@@ -490,7 +486,6 @@
         if (!raw) return createInitialState();
         const parsed = JSON.parse(raw);
         const def = createInitialState();
-        if (parsed.coachProfile && parsed.coachProfile.name === 'استاد آرش رادمهر') parsed.coachProfile.name = def.coachProfile.name;
         return {
           ...def,
           ...parsed,
@@ -517,7 +512,7 @@
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(STATE));
       } catch (err) {
-        console.warn('Storage quota or error:', err);
+        console.warn('LocalStorage error:', err);
       }
     }
 
@@ -532,10 +527,11 @@
     applyTheme();
 
     // =======================================================================
-    // 4. UI CONTROLLER & VIEWS
+    // 3. UI CONTROLLER & SUPABASE SYNC
     // =======================================================================
     const UI = {
       animCleanup: null,
+      isSyncing: false,
 
       escapeHtml(str) {
         return String(str == null ? '' : str)
@@ -569,6 +565,200 @@
         }, 2800);
       },
 
+      // ---------------------------------------------------------------------
+      // SUPABASE HYDRATION & PERSISTENCE HELPERS
+      // ---------------------------------------------------------------------
+      async syncFromSupabase(showFeedback = false) {
+        if (this.isSyncing) return;
+        this.isSyncing = true;
+        this.renderChrome();
+        try {
+          const [profiles, students, days, items, completed, tickets] = await Promise.all([
+            SB.select('coach_profile', 'id=eq.coach_main&limit=1'),
+            SB.select('students', 'order=created_at.asc'),
+            SB.select('program_days', 'order=sort_order.asc,created_at.asc'),
+            SB.select('program_items', 'order=sort_order.asc,created_at.asc'),
+            SB.select('completed_items', 'completed=eq.true'),
+            SB.select('tickets', 'order=created_at.desc'),
+          ]);
+
+          if (Array.isArray(profiles) && profiles[0]) {
+            const p = profiles[0];
+            STATE.coachProfile = {
+              id: p.id || 'coach_main',
+              name: p.name || STATE.coachProfile.name,
+              title: p.title || STATE.coachProfile.title,
+              fullBodyPhoto: p.full_body_photo || '',
+              bio: p.bio || STATE.coachProfile.bio,
+              credentials: Array.isArray(p.credentials) ? p.credentials : STATE.coachProfile.credentials,
+              stats: (p.stats && typeof p.stats === 'object') ? { ...STATE.coachProfile.stats, ...p.stats } : STATE.coachProfile.stats,
+            };
+            if (STATE.session.role === 'coach') {
+              STATE.session.name = STATE.coachProfile.name;
+            }
+          }
+
+          if (Array.isArray(students)) {
+            STATE.students = students.map(s => ({
+              id: s.id,
+              name: s.name,
+              code: s.code,
+              goal: s.goal || 'تناسب اندام و افزایش قدرت',
+              phone: s.phone || '',
+            }));
+          }
+
+          const programsMap = {};
+          STATE.students.forEach(s => {
+            programsMap[s.id] = [];
+          });
+
+          const dayLookup = {};
+          (Array.isArray(days) ? days : []).forEach(d => {
+            if (!programsMap[d.student_id]) programsMap[d.student_id] = [];
+            const dayObj = {
+              id: d.id,
+              studentId: d.student_id,
+              title: d.title,
+              sortOrder: d.sort_order ?? 0,
+              items: [],
+            };
+            programsMap[d.student_id].push(dayObj);
+            dayLookup[d.id] = dayObj;
+          });
+
+          (Array.isArray(items) ? items : []).forEach(it => {
+            const dayObj = dayLookup[it.day_id];
+            if (!dayObj) return;
+            dayObj.items.push({
+              id: it.id,
+              dayId: it.day_id,
+              studentId: it.student_id,
+              exId: it.ex_id,
+              sets: it.sets ?? 3,
+              reps: it.reps || '۱۰ تا ۱۲',
+              rest: it.rest || '۷۵ ثانیه',
+              note: it.note || '',
+              sortOrder: it.sort_order ?? 0,
+            });
+          });
+
+          STATE.programs = programsMap;
+
+          const doneMap = {};
+          (Array.isArray(completed) ? completed : []).forEach(c => {
+            if (c.completed) doneMap[c.item_id] = true;
+          });
+          STATE.completedItems = doneMap;
+
+          if (Array.isArray(tickets)) {
+            STATE.tickets = tickets.map(t => ({
+              id: t.id,
+              authorRole: t.author_role || 'student',
+              authorId: t.author_id || '',
+              authorName: t.author_name || 'کاربر',
+              subject: t.subject || '',
+              message: t.message || '',
+              status: t.status || ((Array.isArray(t.replies) && t.replies.length > 0) ? 'answered' : 'open'),
+              isReadByCoach: Boolean(t.is_read_by_coach),
+              createdAt: t.created_at_label || '',
+              replies: Array.isArray(t.replies) ? t.replies : [],
+            }));
+          }
+
+          if (!STATE.ui.coachSelectedStudentId && STATE.students.length > 0) {
+            STATE.ui.coachSelectedStudentId = STATE.students[0].id;
+          }
+
+          saveState();
+          if (showFeedback) {
+            this.showToast('اطلاعات با پایگاه‌داده همگام‌سازی شد.', 'success');
+          }
+        } catch (err) {
+          console.error('Supabase sync error:', err);
+          if (showFeedback) {
+            this.showToast('خطا در ارتباط با سرور؛ اطلاعات محلی نمایش داده می‌شود.', 'error');
+          }
+        } finally {
+          this.isSyncing = false;
+          this.renderAll();
+        }
+      },
+
+      async persistCoachProfile() {
+        const cp = STATE.coachProfile;
+        await SB.upsert('coach_profile', {
+          id: cp.id || 'coach_main',
+          name: cp.name,
+          title: cp.title,
+          full_body_photo: cp.fullBodyPhoto || '',
+          bio: cp.bio,
+          credentials: cp.credentials || [],
+          stats: cp.stats || {},
+          updated_at: new Date().toISOString(),
+        }, 'id');
+      },
+
+      async persistStudent(st) {
+        await SB.upsert('students', {
+          id: st.id,
+          name: st.name,
+          code: String(st.code),
+          goal: st.goal || 'تناسب اندام و افزایش قدرت',
+          phone: st.phone || '',
+        }, 'id');
+      },
+
+      async persistDay(studentId, day, sortOrder = 0) {
+        await SB.upsert('program_days', {
+          id: day.id,
+          student_id: studentId,
+          title: day.title,
+          sort_order: sortOrder,
+        }, 'id');
+      },
+
+      async persistItem(studentId, dayId, item, sortOrder = 0) {
+        await SB.upsert('program_items', {
+          id: item.id,
+          day_id: dayId,
+          student_id: studentId,
+          ex_id: item.exId,
+          sets: Number(item.sets) || 3,
+          reps: String(item.reps || '۱۰ تا ۱۲'),
+          rest: String(item.rest || '۷۵ ثانیه'),
+          note: String(item.note || ''),
+          sort_order: sortOrder,
+        }, 'id');
+      },
+
+      async persistCompletedItem(itemId, completed) {
+        await SB.upsert('completed_items', {
+          item_id: itemId,
+          completed: Boolean(completed),
+          updated_at: new Date().toISOString(),
+        }, 'item_id');
+      },
+
+      async persistTicket(tkt) {
+        await SB.upsert('tickets', {
+          id: tkt.id,
+          author_role: tkt.authorRole,
+          author_id: tkt.authorId,
+          author_name: tkt.authorName,
+          subject: tkt.subject,
+          message: tkt.message,
+          status: tkt.status || 'open',
+          is_read_by_coach: Boolean(tkt.isReadByCoach),
+          created_at_label: tkt.createdAt || '',
+          replies: tkt.replies || [],
+          updated_at: new Date().toISOString(),
+        }, 'id');
+      },
+
+      // ---------------------------------------------------------------------
+      // NAVIGATION & DRAWER
+      // ---------------------------------------------------------------------
       toggleDrawer(open) {
         const backdrop = document.getElementById('drawerBackdrop');
         const drawer = document.getElementById('navDrawer');
@@ -617,15 +807,6 @@
         this.renderAll();
       },
 
-      resetDemoData() {
-        localStorage.removeItem(STORAGE_KEY);
-        STATE = createInitialState();
-        applyTheme();
-        saveState();
-        this.showToast('اطلاعات نمونه با موفقیت بازنشانی شد.', 'success');
-        this.renderAll();
-      },
-
       // ---------------------------------------------------------------------
       // LOGIN & REGISTER MODAL
       // ---------------------------------------------------------------------
@@ -645,7 +826,7 @@
               </span>
               <h2 class="text-xl font-extrabold text-slate-900 dark:text-white">ورود یا ثبت‌نام در آکادمی</h2>
               <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                حساب مربی و شاگردان به‌صورت خودکار تشخیص داده می‌شوند.
+                شناسه مربی یا کد شاگردی خود را وارد کنید.
               </p>
             </div>
 
@@ -689,23 +870,9 @@
                   type="text"
                   id="loginIdentifier"
                   required
-                  placeholder="مثال: coach یا کد شاگرد مثل 1001"
+                  placeholder="شناسه مربی یا کد شاگردی را وارد کنید"
                   class="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm focus:outline-none focus:border-brand-500"
                 />
-              </div>
-
-              <div class="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200/70 dark:border-slate-700/70 space-y-2">
-                <div class="text-xs font-bold text-slate-700 dark:text-slate-200">ورود سریع تستی:</div>
-                <div class="flex flex-wrap gap-2">
-                  <button type="button" onclick="UI.quickLogin('coach')" class="px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold transition">
-                    ورود مربی (coach)
-                  </button>
-                  ${STATE.students.slice(0, 3).map(st => `
-                    <button type="button" onclick="UI.quickLogin('${UI.escapeHtml(st.code)}')" class="px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 hover:bg-brand-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-xs font-semibold transition">
-                      شاگرد: ${UI.escapeHtml(st.name)} (${UI.toFaDigits(st.code)})
-                    </button>
-                  `).join('')}
-                </div>
               </div>
 
               <button type="submit" class="w-full py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-sm shadow-lg shadow-brand-600/25 transition">
@@ -718,16 +885,16 @@
             <form onsubmit="UI.handleRegisterSubmit(event)" class="space-y-3.5">
               <div>
                 <label class="block text-xs font-bold mb-1 text-slate-700 dark:text-slate-300">نام و نام خانوادگی</label>
-                <input type="text" id="regName" required placeholder="مثال: سارا محمدی" class="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm focus:outline-none focus:border-brand-500" />
+                <input type="text" id="regName" required placeholder="نام و نام خانوادگی" class="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm focus:outline-none focus:border-brand-500" />
               </div>
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label class="block text-xs font-bold mb-1 text-slate-700 dark:text-slate-300">کد ورود دلخواه (۴ رقم)</label>
-                  <input type="text" id="regCode" required placeholder="مثال: 1009" class="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm focus:outline-none focus:border-brand-500" />
+                  <label class="block text-xs font-bold mb-1 text-slate-700 dark:text-slate-300">کد ورود اختصاصی</label>
+                  <input type="text" id="regCode" required placeholder="کد عددی یا رمزی" class="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm focus:outline-none focus:border-brand-500" />
                 </div>
                 <div>
                   <label class="block text-xs font-bold mb-1 text-slate-700 dark:text-slate-300">هدف تمرینی</label>
-                  <input type="text" id="regGoal" placeholder="افزایش حجم / کاهش وزن" class="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm focus:outline-none focus:border-brand-500" />
+                  <input type="text" id="regGoal" placeholder="افزایش حجم / کاهش چربی" class="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm focus:outline-none focus:border-brand-500" />
                 </div>
               </div>
               <button type="submit" class="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-lg shadow-emerald-600/20 transition mt-2">
@@ -738,20 +905,18 @@
         }
       },
 
-      quickLogin(identifier) {
-        this.authenticateIdentifier(identifier);
-      },
-
-      handleLoginSubmit(e) {
+      async handleLoginSubmit(e) {
         e.preventDefault();
         const inp = document.getElementById('loginIdentifier');
         if (!inp) return;
-        this.authenticateIdentifier(inp.value.trim());
+        await this.authenticateIdentifier(inp.value.trim());
       },
 
-      authenticateIdentifier(rawId) {
+      async authenticateIdentifier(rawId) {
         const val = String(rawId || '').trim();
         if (!val) return;
+
+        await this.syncFromSupabase(false);
 
         const lower = val.toLowerCase();
         if (lower === 'coach' || lower === 'admin' || val === 'مربی' || val === 'ادمین') {
@@ -787,10 +952,10 @@
           return;
         }
 
-        this.showToast('شناسه واردشده یافت نشد. از «coach» یا کد شاگردی مثل «1001» استفاده کنید.', 'error');
+        this.showToast('شناسه واردشده یافت نشد.', 'error');
       },
 
-      handleRegisterSubmit(e) {
+      async handleRegisterSubmit(e) {
         e.preventDefault();
         const name = (document.getElementById('regName')?.value || '').trim();
         const code = (document.getElementById('regCode')?.value || '').trim();
@@ -819,8 +984,16 @@
         };
         STATE.currentRoute = 'panel';
         saveState();
+
+        try {
+          await this.persistStudent(newStudent);
+        } catch (err) {
+          console.error('Register persist error:', err);
+          this.showToast('ثبت محلی انجام شد؛ خطا در ذخیره روی سرور.', 'error');
+        }
+
         this.closeModal();
-        this.showToast(`ثبت‌نام ${name} با کد ${this.toFaDigits(code)} انجام شد!`, 'success');
+        this.showToast(`ثبت‌نام ${name} با موفقیت انجام شد!`, 'success');
         this.renderAll();
       },
 
@@ -838,6 +1011,10 @@
         }
       },
 
+      getUnreadCoachTicketsCount() {
+        return STATE.tickets.filter(t => t.authorRole === 'student' && !t.isReadByCoach).length;
+      },
+
       // ---------------------------------------------------------------------
       // HEADER, DRAWER & CHROME RENDERING
       // ---------------------------------------------------------------------
@@ -848,6 +1025,7 @@
 
         const role = STATE.session.role;
         const roleLabel = role === 'coach' ? 'مربی' : role === 'student' ? 'شاگرد' : 'مهمان';
+        const unreadCount = role === 'coach' ? this.getUnreadCoachTicketsCount() : 0;
 
         if (drawerStatus) {
           drawerStatus.textContent = role === 'guest'
@@ -857,11 +1035,20 @@
 
         const themeIcon = STATE.theme === 'dark'
           ? '<svg class="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z"/></svg>'
-          : '<svg class="w-4 h-4 text-slate-600" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"/></svg>';
+          : '<svg class="w-4 h-4 text-slate-600" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8 0 1010.586 10.586z"/></svg>';
+
+        const syncBtn = `
+          <button type="button" onclick="UI.syncFromSupabase(true)" title="همگام‌سازی با سرور" aria-label="همگام‌سازی با سرور" class="p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition ${this.isSyncing ? 'animate-spin' : ''}">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </button>
+        `;
 
         if (authArea) {
           if (role === 'guest') {
             authArea.innerHTML = `
+              ${syncBtn}
               <button type="button" onclick="UI.toggleTheme()" aria-label="تغییر پوسته" class="p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition">
                 ${themeIcon}
               </button>
@@ -874,12 +1061,14 @@
             `;
           } else {
             authArea.innerHTML = `
+              ${syncBtn}
               <button type="button" onclick="UI.toggleTheme()" aria-label="تغییر پوسته" class="p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition">
                 ${themeIcon}
               </button>
               <button type="button" onclick="UI.navigate('panel')" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-200">
                 <span>${UI.escapeHtml(STATE.session.name)}</span>
                 <span class="text-brand-600 dark:text-brand-400">(${roleLabel})</span>
+                ${unreadCount > 0 ? `<span class="px-1.5 py-0.5 rounded-full bg-rose-600 text-white text-[10px]">${this.toFaDigits(unreadCount)}</span>` : ''}
               </button>
               <button type="button" onclick="UI.logout()" class="px-3 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/50 dark:hover:bg-rose-900/50 text-rose-600 dark:text-rose-400 text-xs font-bold transition">
                 خروج
@@ -911,13 +1100,12 @@
       },
 
       // ---------------------------------------------------------------------
-      // ROUTE 1: HOME (BODYBUILDING SCIENCE, MOTIVATION & INTERACTIVE CALCULATOR)
+      // ROUTE 1: HOME
       // ---------------------------------------------------------------------
       renderHome() {
         const cp = STATE.coachProfile;
         return `
           <div class="space-y-8">
-            <!-- Hero Banner -->
             <section class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-900 to-brand-950 text-white p-6 sm:p-10 shadow-xl border border-slate-800">
               <div class="max-w-3xl space-y-4 relative z-10">
                 <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-500/20 border border-brand-400/30 text-brand-300 text-xs font-bold">
@@ -949,7 +1137,6 @@
               </div>
             </section>
 
-            <!-- 4 Pillars of Bodybuilding Science -->
             <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-2">
                 <div class="w-10 h-10 rounded-xl bg-brand-100 dark:bg-brand-900/50 text-brand-600 dark:text-brand-400 flex items-center justify-center font-black">۰۱</div>
@@ -981,7 +1168,6 @@
               </div>
             </section>
 
-            <!-- Interactive BMI & Daily Calorie/Protein Calculator -->
             <section class="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-200/80 dark:border-slate-800 shadow-xs">
               <div class="flex flex-col lg:flex-row gap-8 items-start">
                 <div class="w-full lg:w-1/2 space-y-4">
@@ -1048,7 +1234,6 @@
           bmiBadgeClass = 'text-rose-600 dark:text-rose-400';
         }
 
-        // Moderate training baseline estimate
         const bmr = 10 * w + 6.25 * h - 5 * age + 5;
         let targetKcal = Math.round(bmr * 1.55);
         if (goal === 'bulk') targetKcal += 350;
@@ -1076,7 +1261,7 @@
       },
 
       // ---------------------------------------------------------------------
-      // ROUTE 2: ABOUT COACH (FULL-BODY PHOTO SLOT + COACH BIO + EDITOR)
+      // ROUTE 2: ABOUT COACH
       // ---------------------------------------------------------------------
       renderAbout() {
         const cp = STATE.coachProfile;
@@ -1098,14 +1283,10 @@
             <circle cx="150" cy="78" r="26" fill="#e2e8f0"/>
             <path d="M126 68 Q150 42 174 68 Z" fill="#334155"/>
             <path d="M136 104 L164 104 L172 124 L128 124 Z" fill="#cbd5e1"/>
-            <!-- Athletic V-taper torso -->
             <path d="M92 126 Q150 116 208 126 L184 246 L116 246 Z" fill="url(#coachPhysiqueGrad)" opacity="0.92"/>
-            <!-- Arms -->
             <path d="M92 128 L66 196 L78 242" fill="none" stroke="#e2e8f0" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
             <path d="M208 128 L234 196 L222 242" fill="none" stroke="#e2e8f0" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
-            <!-- Shorts -->
             <path d="M116 246 L184 246 L190 286 L154 282 L150 268 L146 282 L110 286 Z" fill="#1e293b"/>
-            <!-- Legs -->
             <path d="M128 286 L122 356 L120 416" fill="none" stroke="#cbd5e1" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
             <path d="M172 286 L178 356 L180 416" fill="none" stroke="#cbd5e1" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
             <text x="150" y="432" text-anchor="middle" fill="#94a3b8" font-size="11" font-family="Vazirmatn, sans-serif">قاب عکس قدی استاد (قابل آپلود)</text>
@@ -1116,7 +1297,6 @@
           <div class="space-y-8">
             <section class="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-200/80 dark:border-slate-800 shadow-xs">
               <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-                <!-- Full-Body Coach Photo Column -->
                 <div class="lg:col-span-5 space-y-3">
                   <div class="aspect-[3/4] w-full max-w-sm mx-auto rounded-3xl overflow-hidden border-2 border-brand-500/30 shadow-xl bg-slate-900 relative">
                     ${cp.fullBodyPhoto
@@ -1140,7 +1320,6 @@
                   ` : ''}
                 </div>
 
-                <!-- Coach Bio & Credentials Column -->
                 <div class="lg:col-span-7 space-y-5">
                   <div>
                     <span class="inline-block text-xs font-extrabold px-3 py-1 rounded-full bg-brand-100 text-brand-700 dark:bg-brand-900/50 dark:text-brand-300 mb-2">
@@ -1158,7 +1337,6 @@
                     ${UI.escapeHtml(cp.bio)}
                   </p>
 
-                  <!-- Coach Stats -->
                   <div class="grid grid-cols-3 gap-3 pt-1">
                     <div class="rounded-2xl bg-slate-50 dark:bg-slate-800/80 p-4 border border-slate-200/70 dark:border-slate-700 text-center">
                       <div class="text-xl sm:text-2xl font-black text-brand-600 dark:text-brand-400">${UI.toFaDigits(cp.stats.experienceYears)}</div>
@@ -1174,7 +1352,6 @@
                     </div>
                   </div>
 
-                  <!-- Credentials List -->
                   <div class="space-y-2 pt-2">
                     <h2 class="text-sm font-extrabold text-slate-800 dark:text-slate-200">سوابق، مدارک و رویکرد تخصصی:</h2>
                     <ul class="space-y-2">
@@ -1187,7 +1364,6 @@
                     </ul>
                   </div>
 
-                  <!-- Coach Inline Profile Editor -->
                   ${isCoach ? `
                     <form onsubmit="UI.saveCoachProfile(event)" class="mt-6 pt-6 border-t border-slate-200 dark:border-slate-800 space-y-3">
                       <div class="text-sm font-extrabold text-brand-600 dark:text-brand-400">ویرایش اطلاعات صفحه درباره ما</div>
@@ -1217,27 +1393,38 @@
         `;
       },
 
-      handleCoachPhotoUpload(e) {
+      async handleCoachPhotoUpload(e) {
         const file = e.target.files && e.target.files[0];
         if (!file) return;
         const reader = new FileReader();
-        reader.onload = () => {
+        reader.onload = async () => {
           STATE.coachProfile.fullBodyPhoto = String(reader.result || '');
           saveState();
-          this.showToast('عکس قدی استاد با موفقیت ذخیره شد.', 'success');
+          try {
+            await this.persistCoachProfile();
+            this.showToast('عکس قدی استاد در سرور ذخیره شد.', 'success');
+          } catch (err) {
+            console.error(err);
+            this.showToast('ذخیره محلی انجام شد؛ خطا در ذخیره عکس در سرور.', 'error');
+          }
           this.renderMainView();
         };
         reader.readAsDataURL(file);
       },
 
-      removeCoachPhoto() {
+      async removeCoachPhoto() {
         STATE.coachProfile.fullBodyPhoto = '';
         saveState();
-        this.showToast('عکس قدی استاد حذف شد.');
+        try {
+          await this.persistCoachProfile();
+          this.showToast('عکس قدی استاد حذف شد.');
+        } catch (err) {
+          console.error(err);
+        }
         this.renderMainView();
       },
 
-      saveCoachProfile(e) {
+      async saveCoachProfile(e) {
         e.preventDefault();
         const name = (document.getElementById('editCoachName')?.value || '').trim();
         const title = (document.getElementById('editCoachTitle')?.value || '').trim();
@@ -1251,12 +1438,19 @@
           STATE.session.name = name;
         }
         saveState();
-        this.showToast('اطلاعات استاد به‌روزرسانی شد.', 'success');
+
+        try {
+          await this.persistCoachProfile();
+          this.showToast('اطلاعات استاد در پایگاه‌داده به‌روزرسانی شد.', 'success');
+        } catch (err) {
+          console.error(err);
+          this.showToast('ذخیره محلی انجام شد؛ خطا در ارتباط با سرور.', 'error');
+        }
         this.renderAll();
       },
 
       // ---------------------------------------------------------------------
-      // ROUTE 3: CONTACT & TICKETING (LOCKED FOR GUESTS, OPEN WHEN LOGGED IN)
+      // ROUTE 3: CONTACT & TICKETING
       // ---------------------------------------------------------------------
       renderContact() {
         const isLoggedIn = STATE.session.role === 'coach' || STATE.session.role === 'student';
@@ -1288,7 +1482,6 @@
               </div>
 
               ${!isLoggedIn ? `
-                <!-- Locked State for Guests -->
                 <div class="rounded-3xl bg-slate-50 dark:bg-slate-800/70 border-2 border-dashed border-slate-300 dark:border-slate-700 p-8 text-center space-y-4">
                   <div class="w-14 h-14 mx-auto rounded-2xl bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400 flex items-center justify-center">
                     <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -1313,7 +1506,6 @@
                   </div>
                 </div>
               ` : `
-                <!-- Authenticated Ticket Form & List -->
                 <div class="grid grid-cols-1 lg:grid-cols-12 gap-7 items-start">
                   <form onsubmit="UI.handleTicketCreate(event)" class="lg:col-span-5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-700 space-y-3.5">
                     <h2 class="text-base font-extrabold">ثبت تیکت جدید</h2>
@@ -1342,43 +1534,7 @@
                       <div class="rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-800 p-6 text-center text-xs sm:text-sm text-slate-500">
                         هنوز تیکتی ثبت نشده است.
                       </div>
-                    ` : visibleTickets.map(tkt => `
-                      <div class="rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700 p-4 space-y-3">
-                        <div class="flex flex-wrap items-center justify-between gap-2">
-                          <div class="font-extrabold text-sm text-slate-900 dark:text-white">${UI.escapeHtml(tkt.subject)}</div>
-                          <span class="text-[11px] text-slate-500">${UI.toFaDigits(tkt.createdAt)}</span>
-                        </div>
-                        <div class="text-xs text-brand-600 dark:text-brand-400 font-semibold">
-                          ارسال‌کننده: ${UI.escapeHtml(tkt.authorName)}
-                        </div>
-                        <p class="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
-                          ${UI.escapeHtml(tkt.message)}
-                        </p>
-
-                        ${(tkt.replies && tkt.replies.length > 0) ? `
-                          <div class="space-y-2 pt-2 border-t border-slate-200/80 dark:border-slate-700">
-                            ${tkt.replies.map(rep => `
-                              <div class="rounded-xl bg-white dark:bg-slate-900 p-3 border border-emerald-200/60 dark:border-emerald-900/40">
-                                <div class="flex items-center justify-between text-[11px] font-bold text-emerald-600 dark:text-emerald-400 mb-1">
-                                  <span>${UI.escapeHtml(rep.sender)}</span>
-                                  <span>${UI.toFaDigits(rep.time)}</span>
-                                </div>
-                                <p class="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">${UI.escapeHtml(rep.text)}</p>
-                              </div>
-                            `).join('')}
-                          </div>
-                        ` : ''}
-
-                        ${isCoach ? `
-                          <form onsubmit="UI.handleTicketReply(event, '${tkt.id}')" class="flex gap-2 pt-1">
-                            <input type="text" id="reply_${tkt.id}" required placeholder="پاسخ مربی را بنویسید..." class="flex-1 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs" />
-                            <button type="submit" class="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition">
-                              ارسال پاسخ
-                            </button>
-                          </form>
-                        ` : ''}
-                      </div>
-                    `).join('')}
+                    ` : visibleTickets.map(tkt => this.renderTicketCard(tkt, isCoach, 'contact')).join('')}
                   </div>
                 </div>
               `}
@@ -1387,7 +1543,75 @@
         `;
       },
 
-      handleTicketCreate(e) {
+      renderTicketCard(tkt, isCoach, prefix = 'tkt') {
+        const isAnswered = tkt.status === 'answered' || (Array.isArray(tkt.replies) && tkt.replies.length > 0);
+        const isUnreadByCoach = isCoach && tkt.authorRole === 'student' && !tkt.isReadByCoach;
+
+        return `
+          <div class="rounded-2xl p-4 border space-y-3 transition ${
+            isUnreadByCoach
+              ? 'bg-amber-50/60 dark:bg-amber-950/20 border-amber-300 dark:border-amber-800/70'
+              : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200/80 dark:border-slate-700'
+          }">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="font-extrabold text-sm text-slate-900 dark:text-white">${UI.escapeHtml(tkt.subject)}</span>
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                  isAnswered
+                    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
+                    : 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300'
+                }">
+                  ${isAnswered ? 'پاسخ داده شده' : 'در انتظار پاسخ'}
+                </span>
+                ${isUnreadByCoach ? `
+                  <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-rose-600 text-white">جدید</span>
+                ` : ''}
+              </div>
+              <span class="text-[11px] text-slate-500">${UI.toFaDigits(tkt.createdAt || '')}</span>
+            </div>
+
+            <div class="flex items-center justify-between gap-2 text-xs">
+              <span class="text-brand-600 dark:text-brand-400 font-semibold">
+                ارسال‌کننده: ${UI.escapeHtml(tkt.authorName)} (${tkt.authorRole === 'coach' ? 'مربی' : 'شاگرد'})
+              </span>
+              ${isUnreadByCoach ? `
+                <button type="button" onclick="UI.markTicketRead('${tkt.id}')" class="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline">
+                  علامت‌گذاری به عنوان خوانده‌شده
+                </button>
+              ` : ''}
+            </div>
+
+            <p class="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-line">
+              ${UI.escapeHtml(tkt.message)}
+            </p>
+
+            ${(tkt.replies && tkt.replies.length > 0) ? `
+              <div class="space-y-2 pt-2 border-t border-slate-200/80 dark:border-slate-700">
+                ${tkt.replies.map(rep => `
+                  <div class="rounded-xl bg-white dark:bg-slate-900 p-3 border border-emerald-200/60 dark:border-emerald-900/40">
+                    <div class="flex items-center justify-between text-[11px] font-bold text-emerald-600 dark:text-emerald-400 mb-1">
+                      <span>${UI.escapeHtml(rep.sender)}</span>
+                      <span>${UI.toFaDigits(rep.time || '')}</span>
+                    </div>
+                    <p class="text-xs text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-line">${UI.escapeHtml(rep.text)}</p>
+                  </div>
+                `).join('')}
+              </div>
+            ` : ''}
+
+            ${isCoach ? `
+              <form onsubmit="UI.handleTicketReply(event, '${tkt.id}', '${prefix}_${tkt.id}')" class="flex gap-2 pt-1">
+                <input type="text" id="${prefix}_${tkt.id}" required placeholder="پاسخ مربی را بنویسید..." class="flex-1 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs" />
+                <button type="submit" class="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition">
+                  ارسال پاسخ
+                </button>
+              </form>
+            ` : ''}
+          </div>
+        `;
+      },
+
+      async handleTicketCreate(e) {
         e.preventDefault();
         if (STATE.session.role === 'guest') {
           this.showToast('ابتدا وارد حساب کاربری شوید.', 'error');
@@ -1398,30 +1622,56 @@
         if (!subject || !message) return;
 
         const nowStr = new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' });
-        STATE.tickets.unshift({
+        const newTicket = {
           id: uid('tkt'),
           authorRole: STATE.session.role,
           authorId: STATE.session.userId,
           authorName: STATE.session.name,
           subject,
           message,
+          status: 'open',
+          isReadByCoach: STATE.session.role === 'coach',
           createdAt: `امروز - ${nowStr}`,
           replies: [],
-        });
+        };
+
+        STATE.tickets.unshift(newTicket);
         saveState();
-        this.showToast('تیکت شما با موفقیت ثبت شد.', 'success');
-        this.renderMainView();
+
+        try {
+          await this.persistTicket(newTicket);
+          this.showToast('تیکت شما با موفقیت ثبت شد.', 'success');
+        } catch (err) {
+          console.error(err);
+          this.showToast('تیکت به‌صورت محلی ثبت شد؛ خطا در ارتباط با سرور.', 'error');
+        }
+        this.renderAll();
       },
 
-      handleTicketReply(e, ticketId) {
+      async markTicketRead(ticketId) {
+        if (STATE.session.role !== 'coach') return;
+        const tkt = STATE.tickets.find(t => t.id === ticketId);
+        if (!tkt) return;
+        tkt.isReadByCoach = true;
+        saveState();
+        try {
+          await this.persistTicket(tkt);
+        } catch (err) {
+          console.error(err);
+        }
+        this.renderAll();
+      },
+
+      async handleTicketReply(e, ticketId, inputId) {
         e.preventDefault();
         if (STATE.session.role !== 'coach') return;
-        const inp = document.getElementById('reply_' + ticketId);
+        const inp = document.getElementById(inputId);
         const text = (inp?.value || '').trim();
         if (!text) return;
 
         const tkt = STATE.tickets.find(t => t.id === ticketId);
         if (!tkt) return;
+
         tkt.replies = tkt.replies || [];
         const nowStr = new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' });
         tkt.replies.push({
@@ -1429,13 +1679,22 @@
           text,
           time: `امروز - ${nowStr}`,
         });
+        tkt.status = 'answered';
+        tkt.isReadByCoach = true;
         saveState();
-        this.showToast('پاسخ تیکت ثبت شد.', 'success');
-        this.renderMainView();
+
+        try {
+          await this.persistTicket(tkt);
+          this.showToast('پاسخ تیکت در سرور ثبت شد.', 'success');
+        } catch (err) {
+          console.error(err);
+          this.showToast('پاسخ محلی ثبت شد؛ خطا در ارتباط با سرور.', 'error');
+        }
+        this.renderAll();
       },
 
       // ---------------------------------------------------------------------
-      // ROUTE 4: USER PANEL (COACH ACCORDION BUILDER OR ASSIGNED STUDENT VIEW)
+      // ROUTE 4: USER PANEL
       // ---------------------------------------------------------------------
       renderPanel() {
         if (STATE.session.role === 'guest') {
@@ -1459,255 +1718,356 @@
       },
 
       // ---------------------------------------------------------------------
-      // COACH PANEL (COLLAPSIBLE ACCORDION DAYS & EXERCISES + 63-EX PICKER)
+      // COACH PANEL (PROGRAM BUILDER + COACH TICKET INBOX)
       // ---------------------------------------------------------------------
+      setCoachTab(tab) {
+        STATE.ui.coachTab = tab === 'inbox' ? 'inbox' : 'program';
+        if (tab === 'inbox') {
+          // Automatically mark unread student tickets as read when opening inbox
+          let changed = false;
+          STATE.tickets.forEach(t => {
+            if (t.authorRole === 'student' && !t.isReadByCoach) {
+              t.isReadByCoach = true;
+              changed = true;
+              this.persistTicket(t).catch(err => console.error(err));
+            }
+          });
+          if (changed) saveState();
+        }
+        this.renderAll();
+      },
+
+      setCoachTicketFilter(filter) {
+        STATE.ui.coachTicketFilter = filter;
+        this.renderMainView();
+      },
+
       renderCoachPanel() {
+        const activeTab = STATE.ui.coachTab || 'program';
+        const unreadCount = this.getUnreadCoachTicketsCount();
+        const studentTicketsCount = STATE.tickets.filter(t => t.authorRole === 'student').length;
+
         const students = STATE.students;
         let selectedStudent = students.find(s => s.id === STATE.ui.coachSelectedStudentId) || students[0] || null;
         if (selectedStudent) {
           STATE.ui.coachSelectedStudentId = selectedStudent.id;
         }
-
         const days = selectedStudent ? (STATE.programs[selectedStudent.id] || []) : [];
 
         return `
           <div class="space-y-6">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-200/80 dark:border-slate-800">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-200/80 dark:border-slate-800">
               <div>
                 <span class="text-xs font-extrabold text-brand-600 dark:text-brand-400">پنل مدیریت مربی</span>
-                <h1 class="text-xl sm:text-2xl font-black mt-0.5">برنامه‌ریزی شاگردان و انتخاب حرکت از کتابخانه (${this.toFaDigits(EXERCISES.length)} حرکت)</h1>
+                <h1 class="text-xl sm:text-2xl font-black mt-0.5">${UI.escapeHtml(STATE.coachProfile.name)}</h1>
               </div>
-              <div class="text-xs text-slate-500 dark:text-slate-400">
-                روزها و تمرین‌ها کشویی هستند؛ برای ویرایش جزئیات هر بخش روی آن کلیک کنید.
+
+              <!-- Coach Main Navigation Tabs -->
+              <div class="flex flex-wrap items-center gap-2 bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl">
+                <button
+                  type="button"
+                  onclick="UI.setCoachTab('program')"
+                  class="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition ${
+                    activeTab === 'program'
+                      ? 'bg-white dark:bg-slate-900 text-brand-600 shadow-xs'
+                      : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                  }"
+                >
+                  برنامه‌ریزی شاگردان (${this.toFaDigits(students.length)})
+                </button>
+                <button
+                  type="button"
+                  onclick="UI.setCoachTab('inbox')"
+                  class="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition inline-flex items-center gap-2 ${
+                    activeTab === 'inbox'
+                      ? 'bg-white dark:bg-slate-900 text-brand-600 shadow-xs'
+                      : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                  }"
+                >
+                  <span>صندوق دریافت تیکت‌ها (${this.toFaDigits(studentTicketsCount)})</span>
+                  ${unreadCount > 0 ? `
+                    <span class="px-2 py-0.5 rounded-full bg-rose-600 text-white text-[10px] font-extrabold">${this.toFaDigits(unreadCount)}</span>
+                  ` : ''}
+                </button>
               </div>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-              <!-- Students Sidebar -->
-              <aside class="lg:col-span-4 bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200/80 dark:border-slate-800 space-y-4">
-                <div class="flex items-center justify-between">
-                  <h2 class="font-extrabold text-base">لیست شاگردان (${this.toFaDigits(students.length)})</h2>
-                </div>
-
-                <div class="space-y-2 max-h-80 overflow-y-auto pr-1">
-                  ${students.map(st => {
-                    const active = selectedStudent && st.id === selectedStudent.id;
-                    const stDaysCount = (STATE.programs[st.id] || []).length;
-                    return `
-                      <button
-                        type="button"
-                        onclick="UI.selectCoachStudent('${st.id}')"
-                        class="w-full text-right p-3 rounded-2xl border transition flex items-center justify-between gap-2 ${
-                          active
-                            ? 'bg-brand-50 dark:bg-brand-950/50 border-brand-500 text-slate-900 dark:text-white'
-                            : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200/70 dark:border-slate-700/70 hover:border-brand-300'
-                        }"
-                      >
-                        <div class="min-w-0">
-                          <div class="font-bold text-sm truncate">${UI.escapeHtml(st.name)}</div>
-                          <div class="text-[11px] text-slate-500 dark:text-slate-400 truncate">
-                            کد ورود: <span class="font-bold text-brand-600 dark:text-brand-400">${UI.toFaDigits(st.code)}</span> · ${UI.escapeHtml(st.goal || '')}
-                          </div>
-                        </div>
-                        <span class="text-[11px] px-2 py-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shrink-0 font-semibold">
-                          ${this.toFaDigits(stDaysCount)} روز
-                        </span>
-                      </button>
-                    `;
-                  }).join('')}
-                </div>
-
-                <!-- Add New Student Form -->
-                <form onsubmit="UI.handleAddStudent(event)" class="pt-3 border-t border-slate-200 dark:border-slate-800 space-y-2.5">
-                  <div class="text-xs font-extrabold text-slate-700 dark:text-slate-300">افزودن شاگرد جدید</div>
-                  <input type="text" id="newStuName" required placeholder="نام و نام خانوادگی شاگرد" class="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm" />
-                  <div class="grid grid-cols-2 gap-2">
-                    <input type="text" id="newStuCode" required placeholder="کد ورود (مثل 1004)" class="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm" />
-                    <input type="text" id="newStuGoal" placeholder="هدف (اختیاری)" class="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm" />
-                  </div>
-                  <button type="submit" class="w-full py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs sm:text-sm font-bold transition">
-                    + ثبت شاگرد
-                  </button>
-                </form>
-              </aside>
-
-              <!-- Program Builder Main Area (Accordion Days & Exercises) -->
-              <section class="lg:col-span-8 bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-6 border border-slate-200/80 dark:border-slate-800 space-y-5">
-                ${!selectedStudent ? `
-                  <div class="text-center py-10 text-sm text-slate-500">ابتدا یک شاگرد اضافه کنید.</div>
-                ` : `
-                  <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-4">
-                    <div>
-                      <h2 class="text-lg sm:text-xl font-black">
-                        برنامه تمرینی ${UI.escapeHtml(selectedStudent.name)}
-                      </h2>
-                      <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                        کد ورود شاگرد: <strong>${UI.toFaDigits(selectedStudent.code)}</strong> · تعداد روزها: <strong>${this.toFaDigits(days.length)}</strong>
-                      </p>
-                    </div>
-                    <div class="flex flex-wrap items-center gap-2">
-                      ${days.length > 0 ? `
-                        <button type="button" onclick="UI.setAllDaysExpanded(true)" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-bold transition">
-                          باز کردن همه روزها
-                        </button>
-                        <button type="button" onclick="UI.setAllDaysExpanded(false)" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-bold transition">
-                          بستن همه روزها
-                        </button>
-                      ` : ''}
-                      <button type="button" onclick="UI.addProgramDay()" class="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs sm:text-sm font-bold shadow-sm transition">
-                        + افزودن روز جدید
-                      </button>
-                      <button type="button" onclick="UI.deleteStudent('${selectedStudent.id}')" class="px-3 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 text-xs font-bold transition">
-                        حذف شاگرد
-                      </button>
-                    </div>
+            ${activeTab === 'inbox' ? this.renderCoachTicketInbox() : `
+              <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                <!-- Students Sidebar -->
+                <aside class="lg:col-span-4 bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200/80 dark:border-slate-800 space-y-4">
+                  <div class="flex items-center justify-between">
+                    <h2 class="font-extrabold text-base">لیست شاگردان (${this.toFaDigits(students.length)})</h2>
                   </div>
 
-                  ${days.length === 0 ? `
-                    <div class="rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-dashed border-slate-300 dark:border-slate-700 p-8 text-center space-y-3">
-                      <p class="text-sm text-slate-600 dark:text-slate-300 font-semibold">
-                        هنوز روزی برای برنامه این شاگرد تعریف نشده است.
-                      </p>
-                      <button type="button" onclick="UI.addProgramDay()" class="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold transition">
-                        افزودن اولین روز تمرینی
-                      </button>
-                    </div>
-                  ` : `
-                    <div class="space-y-4">
-                      ${days.map((day, dIdx) => {
-                        const isDayOpen = Boolean(STATE.ui.coachExpandedDays[day.id]);
-                        return `
-                          <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 overflow-hidden">
-                            <!-- Accordion Day Header -->
-                            <div class="flex items-center justify-between gap-2 p-3.5 sm:p-4 bg-white dark:bg-slate-900 border-b ${isDayOpen ? 'border-slate-200 dark:border-slate-800' : 'border-transparent'}">
-                              <button
-                                type="button"
-                                onclick="UI.toggleCoachDay('${day.id}')"
-                                class="flex items-center gap-2.5 text-right flex-1 min-w-0 group"
-                              >
-                                <span class="w-7 h-7 rounded-lg bg-brand-100 dark:bg-brand-900/50 text-brand-600 dark:text-brand-400 flex items-center justify-center text-xs font-black shrink-0">
-                                  ${this.toFaDigits(dIdx + 1)}
-                                </span>
-                                <span class="font-extrabold text-sm sm:text-base truncate group-hover:text-brand-600 transition">
-                                  ${UI.escapeHtml(day.title)}
-                                </span>
-                                <span class="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 shrink-0">
-                                  ${this.toFaDigits(day.items.length)} حرکت
-                                </span>
-                                <svg class="w-4 h-4 text-slate-400 mr-auto transition-transform duration-200 ${isDayOpen ? 'rotate-180' : ''}" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
-                                  <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-                                </svg>
-                              </button>
-
-                              <button
-                                type="button"
-                                onclick="UI.deleteProgramDay('${day.id}')"
-                                aria-label="حذف روز"
-                                class="p-2 rounded-xl text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition"
-                              >
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                  <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
-                              </button>
+                  <div class="space-y-2 max-h-80 overflow-y-auto pr-1">
+                    ${students.length === 0 ? `
+                      <div class="text-xs text-slate-500 text-center py-4">هنوز شاگردی ثبت نشده است.</div>
+                    ` : students.map(st => {
+                      const active = selectedStudent && st.id === selectedStudent.id;
+                      const stDaysCount = (STATE.programs[st.id] || []).length;
+                      return `
+                        <button
+                          type="button"
+                          onclick="UI.selectCoachStudent('${st.id}')"
+                          class="w-full text-right p-3 rounded-2xl border transition flex items-center justify-between gap-2 ${
+                            active
+                              ? 'bg-brand-50 dark:bg-brand-950/50 border-brand-500 text-slate-900 dark:text-white'
+                              : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200/70 dark:border-slate-700/70 hover:border-brand-300'
+                          }"
+                        >
+                          <div class="min-w-0">
+                            <div class="font-bold text-sm truncate">${UI.escapeHtml(st.name)}</div>
+                            <div class="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                              کد ورود: <span class="font-bold text-brand-600 dark:text-brand-400">${UI.toFaDigits(st.code)}</span> · ${UI.escapeHtml(st.goal || '')}
                             </div>
-
-                            <!-- Accordion Day Body -->
-                            ${isDayOpen ? `
-                              <div class="p-3.5 sm:p-4 space-y-3">
-                                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                                  <input
-                                    type="text"
-                                    value="${UI.escapeHtml(day.title)}"
-                                    onchange="UI.updateDayTitle('${day.id}', this.value)"
-                                    placeholder="عنوان روز (مثلاً روز اول: سینه و پشت بازو)"
-                                    class="flex-1 px-3.5 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm font-bold"
-                                  />
-                                  <button
-                                    type="button"
-                                    onclick="UI.openExercisePicker('${day.id}')"
-                                    class="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold transition shrink-0"
-                                  >
-                                    + انتخاب حرکت از کتابخانه
-                                  </button>
-                                </div>
-
-                                ${day.items.length === 0 ? `
-                                  <div class="text-xs text-slate-500 dark:text-slate-400 text-center py-4 bg-white dark:bg-slate-900/60 rounded-xl border border-dashed border-slate-200 dark:border-slate-700">
-                                    هنوز حرکتی به این روز اضافه نشده است. روی «انتخاب حرکت از کتابخانه» کلیک کنید.
-                                  </div>
-                                ` : `
-                                  <div class="space-y-2.5">
-                                    ${day.items.map((item, iIdx) => {
-                                      const ex = EX_BY_ID[item.exId];
-                                      if (!ex) return '';
-                                      const isItemOpen = Boolean(STATE.ui.coachExpandedItems[item.id]);
-                                      return `
-                                        <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-700/90 overflow-hidden">
-                                          <!-- Accordion Exercise Header -->
-                                          <div class="flex items-center justify-between gap-2 px-3.5 py-2.5">
-                                            <button
-                                              type="button"
-                                              onclick="UI.toggleCoachItem('${item.id}')"
-                                              class="flex items-center gap-2 text-right flex-1 min-w-0"
-                                            >
-                                              <span class="text-xs font-black text-slate-400 w-5">${this.toFaDigits(iIdx + 1)}.</span>
-                                              <span class="font-bold text-xs sm:text-sm truncate">${UI.escapeHtml(ex.name)}</span>
-                                              <span class="text-[10px] px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 shrink-0">${UI.escapeHtml(ex.groupLabel)}</span>
-                                              <span class="hidden sm:inline text-[11px] text-brand-600 dark:text-brand-400 font-semibold shrink-0">
-                                                ${this.toFaDigits(item.sets)} ست × ${UI.toFaDigits(item.reps)}
-                                              </span>
-                                              <svg class="w-3.5 h-3.5 text-slate-400 mr-auto transition-transform ${isItemOpen ? 'rotate-180' : ''}" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-                                              </svg>
-                                            </button>
-
-                                            <div class="flex items-center gap-1 shrink-0">
-                                              <button type="button" onclick="UI.openExerciseAnimation('${ex.id}', '${item.id}')" title="مشاهده انیمیشن" class="px-2.5 py-1 rounded-lg bg-brand-50 hover:bg-brand-100 dark:bg-brand-950/60 text-brand-600 dark:text-brand-400 text-[11px] font-bold transition">
-                                                انیمیشن
-                                              </button>
-                                              <button type="button" onclick="UI.moveExerciseItem('${day.id}', '${item.id}', -1)" aria-label="انتقال به بالا" class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 text-xs">↑</button>
-                                              <button type="button" onclick="UI.moveExerciseItem('${day.id}', '${item.id}', 1)" aria-label="انتقال به پایین" class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 text-xs">↓</button>
-                                              <button type="button" onclick="UI.deleteExerciseItem('${day.id}', '${item.id}')" aria-label="حذف تمرین" class="p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/50 text-rose-500 text-xs">✕</button>
-                                            </div>
-                                          </div>
-
-                                          <!-- Accordion Exercise Collapsible Fields -->
-                                          ${isItemOpen ? `
-                                            <div class="px-3.5 pb-3.5 pt-2.5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/30 grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                                              <div>
-                                                <label class="block text-[11px] font-bold text-slate-500 mb-1">تعداد ست</label>
-                                                <input type="number" min="1" max="20" value="${UI.escapeHtml(item.sets)}" onchange="UI.updateExerciseItem('${day.id}', '${item.id}', 'sets', this.value)" class="w-full px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs" />
-                                              </div>
-                                              <div>
-                                                <label class="block text-[11px] font-bold text-slate-500 mb-1">تکرار / دامنه</label>
-                                                <input type="text" value="${UI.escapeHtml(item.reps)}" onchange="UI.updateExerciseItem('${day.id}', '${item.id}', 'reps', this.value)" class="w-full px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs" />
-                                              </div>
-                                              <div>
-                                                <label class="block text-[11px] font-bold text-slate-500 mb-1">استراحت بین ست</label>
-                                                <input type="text" value="${UI.escapeHtml(item.rest)}" onchange="UI.updateExerciseItem('${day.id}', '${item.id}', 'rest', this.value)" class="w-full px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs" />
-                                              </div>
-                                              <div class="sm:col-span-3">
-                                                <label class="block text-[11px] font-bold text-slate-500 mb-1">توضیح و نکته اختصاصی مربی برای شاگرد</label>
-                                                <input type="text" value="${UI.escapeHtml(item.note)}" onchange="UI.updateExerciseItem('${day.id}', '${item.id}', 'note', this.value)" placeholder="نکته تکنیکی یا وزنه پیشنهادی..." class="w-full px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs" />
-                                              </div>
-                                            </div>
-                                          ` : ''}
-                                        </div>
-                                      `;
-                                    }).join('')}
-                                  </div>
-                                `}
-                              </div>
-                            ` : ''}
                           </div>
-                        `;
-                      }).join('')}
+                          <span class="text-[11px] px-2 py-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shrink-0 font-semibold">
+                            ${this.toFaDigits(stDaysCount)} روز
+                          </span>
+                        </button>
+                      `;
+                    }).join('')}
+                  </div>
+
+                  <!-- Add New Student Form -->
+                  <form onsubmit="UI.handleAddStudent(event)" class="pt-3 border-t border-slate-200 dark:border-slate-800 space-y-2.5">
+                    <div class="text-xs font-extrabold text-slate-700 dark:text-slate-300">افزودن شاگرد جدید</div>
+                    <input type="text" id="newStuName" required placeholder="نام و نام خانوادگی شاگرد" class="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm" />
+                    <div class="grid grid-cols-2 gap-2">
+                      <input type="text" id="newStuCode" required placeholder="کد ورود شاگرد" class="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm" />
+                      <input type="text" id="newStuGoal" placeholder="هدف (اختیاری)" class="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm" />
                     </div>
+                    <button type="submit" class="w-full py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs sm:text-sm font-bold transition">
+                      + ثبت شاگرد
+                    </button>
+                  </form>
+                </aside>
+
+                <!-- Program Builder Main Area -->
+                <section class="lg:col-span-8 bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-6 border border-slate-200/80 dark:border-slate-800 space-y-5">
+                  ${!selectedStudent ? `
+                    <div class="text-center py-10 text-sm text-slate-500">ابتدا یک شاگرد اضافه کنید.</div>
+                  ` : `
+                    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-4">
+                      <div>
+                        <h2 class="text-lg sm:text-xl font-black">
+                          برنامه تمرینی ${UI.escapeHtml(selectedStudent.name)}
+                        </h2>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                          کد ورود شاگرد: <strong>${UI.toFaDigits(selectedStudent.code)}</strong> · تعداد روزها: <strong>${this.toFaDigits(days.length)}</strong>
+                        </p>
+                      </div>
+                      <div class="flex flex-wrap items-center gap-2">
+                        ${days.length > 0 ? `
+                          <button type="button" onclick="UI.setAllDaysExpanded(true)" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-bold transition">
+                            باز کردن همه روزها
+                          </button>
+                          <button type="button" onclick="UI.setAllDaysExpanded(false)" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-bold transition">
+                            بستن همه روزها
+                          </button>
+                        ` : ''}
+                        <button type="button" onclick="UI.addProgramDay()" class="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs sm:text-sm font-bold shadow-sm transition">
+                          + افزودن روز جدید
+                        </button>
+                        <button type="button" onclick="UI.deleteStudent('${selectedStudent.id}')" class="px-3 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 text-xs font-bold transition">
+                          حذف شاگرد
+                        </button>
+                      </div>
+                    </div>
+
+                    ${days.length === 0 ? `
+                      <div class="rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-dashed border-slate-300 dark:border-slate-700 p-8 text-center space-y-3">
+                        <p class="text-sm text-slate-600 dark:text-slate-300 font-semibold">
+                          هنوز روزی برای برنامه این شاگرد تعریف نشده است.
+                        </p>
+                        <button type="button" onclick="UI.addProgramDay()" class="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold transition">
+                          افزودن اولین روز تمرینی
+                        </button>
+                      </div>
+                    ` : `
+                      <div class="space-y-4">
+                        ${days.map((day, dIdx) => {
+                          const isDayOpen = Boolean(STATE.ui.coachExpandedDays[day.id]);
+                          return `
+                            <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 overflow-hidden">
+                              <div class="flex items-center justify-between gap-2 p-3.5 sm:p-4 bg-white dark:bg-slate-900 border-b ${isDayOpen ? 'border-slate-200 dark:border-slate-800' : 'border-transparent'}">
+                                <button
+                                  type="button"
+                                  onclick="UI.toggleCoachDay('${day.id}')"
+                                  class="flex items-center gap-2.5 text-right flex-1 min-w-0 group"
+                                >
+                                  <span class="w-7 h-7 rounded-lg bg-brand-100 dark:bg-brand-900/50 text-brand-600 dark:text-brand-400 flex items-center justify-center text-xs font-black shrink-0">
+                                    ${this.toFaDigits(dIdx + 1)}
+                                  </span>
+                                  <span class="font-extrabold text-sm sm:text-base truncate group-hover:text-brand-600 transition">
+                                    ${UI.escapeHtml(day.title)}
+                                  </span>
+                                  <span class="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 shrink-0">
+                                    ${this.toFaDigits(day.items.length)} حرکت
+                                  </span>
+                                  <svg class="w-4 h-4 text-slate-400 mr-auto transition-transform duration-200 ${isDayOpen ? 'rotate-180' : ''}" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                                  </svg>
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onclick="UI.deleteProgramDay('${day.id}')"
+                                  aria-label="حذف روز"
+                                  class="p-2 rounded-xl text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition"
+                                >
+                                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
+                                </button>
+                              </div>
+
+                              ${isDayOpen ? `
+                                <div class="p-3.5 sm:p-4 space-y-3">
+                                  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                    <input
+                                      type="text"
+                                      value="${UI.escapeHtml(day.title)}"
+                                      onchange="UI.updateDayTitle('${day.id}', this.value)"
+                                      placeholder="عنوان روز (مثلاً روز اول: سینه و پشت بازو)"
+                                      class="flex-1 px-3.5 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm font-bold"
+                                    />
+                                    <button
+                                      type="button"
+                                      onclick="UI.openExercisePicker('${day.id}')"
+                                      class="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold transition shrink-0"
+                                    >
+                                      + انتخاب حرکت از کتابخانه
+                                    </button>
+                                  </div>
+
+                                  ${day.items.length === 0 ? `
+                                    <div class="text-xs text-slate-500 dark:text-slate-400 text-center py-4 bg-white dark:bg-slate-900/60 rounded-xl border border-dashed border-slate-200 dark:border-slate-700">
+                                      هنوز حرکتی به این روز اضافه نشده است. روی «انتخاب حرکت از کتابخانه» کلیک کنید.
+                                    </div>
+                                  ` : `
+                                    <div class="space-y-2.5">
+                                      ${day.items.map((item, iIdx) => {
+                                        const ex = EX_BY_ID[item.exId];
+                                        if (!ex) return '';
+                                        const isItemOpen = Boolean(STATE.ui.coachExpandedItems[item.id]);
+                                        return `
+                                          <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-700/90 overflow-hidden">
+                                            <div class="flex items-center justify-between gap-2 px-3.5 py-2.5">
+                                              <button
+                                                type="button"
+                                                onclick="UI.toggleCoachItem('${item.id}')"
+                                                class="flex items-center gap-2 text-right flex-1 min-w-0"
+                                              >
+                                                <span class="text-xs font-black text-slate-400 w-5">${this.toFaDigits(iIdx + 1)}.</span>
+                                                <span class="font-bold text-xs sm:text-sm truncate">${UI.escapeHtml(ex.name)}</span>
+                                                <span class="text-[10px] px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 shrink-0">${UI.escapeHtml(ex.groupLabel)}</span>
+                                                <span class="hidden sm:inline text-[11px] text-brand-600 dark:text-brand-400 font-semibold shrink-0">
+                                                  ${this.toFaDigits(item.sets)} ست × ${UI.toFaDigits(item.reps)}
+                                                </span>
+                                                <svg class="w-3.5 h-3.5 text-slate-400 mr-auto transition-transform ${isItemOpen ? 'rotate-180' : ''}" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                                                  <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                                                </svg>
+                                              </button>
+
+                                              <div class="flex items-center gap-1 shrink-0">
+                                                <button type="button" onclick="UI.openExerciseAnimation('${ex.id}', '${item.id}')" title="مشاهده انیمیشن" class="px-2.5 py-1 rounded-lg bg-brand-50 hover:bg-brand-100 dark:bg-brand-950/60 text-brand-600 dark:text-brand-400 text-[11px] font-bold transition">
+                                                  انیمیشن
+                                                </button>
+                                                <button type="button" onclick="UI.moveExerciseItem('${day.id}', '${item.id}', -1)" aria-label="انتقال به بالا" class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 text-xs">↑</button>
+                                                <button type="button" onclick="UI.moveExerciseItem('${day.id}', '${item.id}', 1)" aria-label="انتقال به پایین" class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 text-xs">↓</button>
+                                                <button type="button" onclick="UI.deleteExerciseItem('${day.id}', '${item.id}')" aria-label="حذف تمرین" class="p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/50 text-rose-500 text-xs">✕</button>
+                                              </div>
+                                            </div>
+
+                                            ${isItemOpen ? `
+                                              <div class="px-3.5 pb-3.5 pt-2.5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/30 grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                                                <div>
+                                                  <label class="block text-[11px] font-bold text-slate-500 mb-1">تعداد ست</label>
+                                                  <input type="number" min="1" max="20" value="${UI.escapeHtml(item.sets)}" onchange="UI.updateExerciseItem('${day.id}', '${item.id}', 'sets', this.value)" class="w-full px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs" />
+                                                </div>
+                                                <div>
+                                                  <label class="block text-[11px] font-bold text-slate-500 mb-1">تکرار / دامنه</label>
+                                                  <input type="text" value="${UI.escapeHtml(item.reps)}" onchange="UI.updateExerciseItem('${day.id}', '${item.id}', 'reps', this.value)" class="w-full px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs" />
+                                                </div>
+                                                <div>
+                                                  <label class="block text-[11px] font-bold text-slate-500 mb-1">استراحت بین ست</label>
+                                                  <input type="text" value="${UI.escapeHtml(item.rest)}" onchange="UI.updateExerciseItem('${day.id}', '${item.id}', 'rest', this.value)" class="w-full px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs" />
+                                                </div>
+                                                <div class="sm:col-span-3">
+                                                  <label class="block text-[11px] font-bold text-slate-500 mb-1">توضیح و نکته اختصاصی مربی برای شاگرد</label>
+                                                  <input type="text" value="${UI.escapeHtml(item.note)}" onchange="UI.updateExerciseItem('${day.id}', '${item.id}', 'note', this.value)" placeholder="نکته تکنیکی یا وزنه پیشنهادی..." class="w-full px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs" />
+                                                </div>
+                                              </div>
+                                            ` : ''}
+                                          </div>
+                                        `;
+                                      }).join('')}
+                                    </div>
+                                  `}
+                                </div>
+                              ` : ''}
+                            </div>
+                          `;
+                        }).join('')}
+                      </div>
+                    `}
                   `}
-                `}
-              </section>
-            </div>
+                </section>
+              </div>
+            `}
           </div>
+        `;
+      },
+
+      renderCoachTicketInbox() {
+        const filter = STATE.ui.coachTicketFilter || 'all';
+        const allStudentTickets = STATE.tickets.filter(t => t.authorRole === 'student');
+
+        const filtered = allStudentTickets.filter(t => {
+          const answered = t.status === 'answered' || (Array.isArray(t.replies) && t.replies.length > 0);
+          if (filter === 'open') return !answered;
+          if (filter === 'answered') return answered;
+          return true;
+        });
+
+        const openCount = allStudentTickets.filter(t => !(t.status === 'answered' || (t.replies && t.replies.length > 0))).length;
+        const answeredCount = allStudentTickets.length - openCount;
+
+        return `
+          <section class="bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-6 border border-slate-200/80 dark:border-slate-800 space-y-5">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-4">
+              <div>
+                <h2 class="text-lg sm:text-xl font-black">صندوق دریافت تیکت‌های شاگردان</h2>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  مشاهده پیام‌های ارسال‌شده توسط شاگردان و ثبت پاسخ مستقیم مربی
+                </p>
+              </div>
+
+              <div class="flex flex-wrap items-center gap-1.5">
+                <button type="button" onclick="UI.setCoachTicketFilter('all')" class="px-3 py-1.5 rounded-xl text-xs font-bold transition ${filter === 'all' ? 'bg-brand-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'}">
+                  همه (${this.toFaDigits(allStudentTickets.length)})
+                </button>
+                <button type="button" onclick="UI.setCoachTicketFilter('open')" class="px-3 py-1.5 rounded-xl text-xs font-bold transition ${filter === 'open' ? 'bg-amber-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'}">
+                  در انتظار پاسخ (${this.toFaDigits(openCount)})
+                </button>
+                <button type="button" onclick="UI.setCoachTicketFilter('answered')" class="px-3 py-1.5 rounded-xl text-xs font-bold transition ${filter === 'answered' ? 'bg-emerald-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'}">
+                  پاسخ داده‌شده (${this.toFaDigits(answeredCount)})
+                </button>
+              </div>
+            </div>
+
+            ${filtered.length === 0 ? `
+              <div class="rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-dashed border-slate-300 dark:border-slate-700 p-8 text-center text-xs sm:text-sm text-slate-500">
+                تیکتی در این دسته‌بندی وجود ندارد.
+              </div>
+            ` : `
+              <div class="space-y-3.5">
+                ${filtered.map(tkt => this.renderTicketCard(tkt, true, 'inbox_reply')).join('')}
+              </div>
+            `}
+          </section>
         `;
       },
 
@@ -1743,7 +2103,7 @@
         this.renderMainView();
       },
 
-      handleAddStudent(e) {
+      async handleAddStudent(e) {
         e.preventDefault();
         const name = (document.getElementById('newStuName')?.value || '').trim();
         const code = (document.getElementById('newStuCode')?.value || '').trim();
@@ -1755,18 +2115,26 @@
           return;
         }
 
-        const newId = uid('stu');
-        const firstDayId = uid('day');
-        STATE.students.push({ id: newId, name, code, goal, phone: '' });
-        STATE.programs[newId] = [{ id: firstDayId, title: 'روز اول تمرینی', items: [] }];
-        STATE.ui.coachSelectedStudentId = newId;
-        STATE.ui.coachExpandedDays[firstDayId] = true;
+        const newStudent = { id: uid('stu'), name, code, goal, phone: '' };
+        const firstDay = { id: uid('day'), title: 'روز اول تمرینی', items: [] };
+        STATE.students.push(newStudent);
+        STATE.programs[newStudent.id] = [firstDay];
+        STATE.ui.coachSelectedStudentId = newStudent.id;
+        STATE.ui.coachExpandedDays[firstDay.id] = true;
         saveState();
-        this.showToast(`شاگرد «${name}» با کد ${this.toFaDigits(code)} اضافه شد.`, 'success');
+
+        try {
+          await this.persistStudent(newStudent);
+          await this.persistDay(newStudent.id, firstDay, 0);
+          this.showToast(`شاگرد «${name}» در سرور ثبت شد.`, 'success');
+        } catch (err) {
+          console.error(err);
+          this.showToast('ثبت محلی انجام شد؛ خطا در ارتباط با سرور.', 'error');
+        }
         this.renderMainView();
       },
 
-      deleteStudent(studentId) {
+      async deleteStudent(studentId) {
         const st = STATE.students.find(s => s.id === studentId);
         if (!st) return;
         STATE.students = STATE.students.filter(s => s.id !== studentId);
@@ -1775,68 +2143,105 @@
           STATE.ui.coachSelectedStudentId = STATE.students[0] ? STATE.students[0].id : null;
         }
         saveState();
-        this.showToast(`شاگرد «${st.name}» حذف شد.`);
+
+        try {
+          await SB.deleteWhere('students', `id=eq.${encodeURIComponent(studentId)}`);
+          this.showToast(`شاگرد «${st.name}» حذف شد.`);
+        } catch (err) {
+          console.error(err);
+          this.showToast('حذف محلی انجام شد؛ خطا در حذف از سرور.', 'error');
+        }
         this.renderMainView();
       },
 
-      addProgramDay() {
+      async addProgramDay() {
         const sid = STATE.ui.coachSelectedStudentId;
         if (!sid) return;
         const list = STATE.programs[sid] || [];
-        const newDayId = uid('day');
-        list.push({
-          id: newDayId,
+        const newDay = {
+          id: uid('day'),
           title: `روز ${this.toFaDigits(list.length + 1)} تمرینی`,
           items: [],
-        });
+        };
+        const sortOrder = list.length;
+        list.push(newDay);
         STATE.programs[sid] = list;
-        STATE.ui.coachExpandedDays[newDayId] = true;
+        STATE.ui.coachExpandedDays[newDay.id] = true;
         saveState();
-        this.showToast('روز تمرینی جدید اضافه شد.', 'success');
+
+        try {
+          await this.persistDay(sid, newDay, sortOrder);
+          this.showToast('روز تمرینی جدید در سرور ثبت شد.', 'success');
+        } catch (err) {
+          console.error(err);
+          this.showToast('ثبت محلی انجام شد؛ خطا در ارتباط با سرور.', 'error');
+        }
         this.renderMainView();
       },
 
-      deleteProgramDay(dayId) {
+      async deleteProgramDay(dayId) {
         const sid = STATE.ui.coachSelectedStudentId;
         if (!sid) return;
         STATE.programs[sid] = (STATE.programs[sid] || []).filter(d => d.id !== dayId);
         delete STATE.ui.coachExpandedDays[dayId];
         saveState();
-        this.showToast('روز تمرینی حذف شد.');
+
+        try {
+          await SB.deleteWhere('program_days', `id=eq.${encodeURIComponent(dayId)}`);
+          this.showToast('روز تمرینی حذف شد.');
+        } catch (err) {
+          console.error(err);
+          this.showToast('حذف محلی انجام شد؛ خطا در حذف از سرور.', 'error');
+        }
         this.renderMainView();
       },
 
-      updateDayTitle(dayId, title) {
+      async updateDayTitle(dayId, title) {
         const sid = STATE.ui.coachSelectedStudentId;
-        const day = (STATE.programs[sid] || []).find(d => d.id === dayId);
-        if (!day) return;
-        day.title = title.trim() || day.title;
+        const days = STATE.programs[sid] || [];
+        const idx = days.findIndex(d => d.id === dayId);
+        if (idx < 0) return;
+        days[idx].title = title.trim() || days[idx].title;
         saveState();
+        try {
+          await this.persistDay(sid, days[idx], idx);
+        } catch (err) {
+          console.error(err);
+        }
+        this.renderMainView();
       },
 
-      addExerciseToDay(dayId, exId) {
+      async addExerciseToDay(dayId, exId) {
         const sid = STATE.ui.coachSelectedStudentId;
         const day = (STATE.programs[sid] || []).find(d => d.id === dayId);
         const ex = EX_BY_ID[exId];
         if (!day || !ex) return;
 
-        const newItemId = uid('it');
-        day.items.push({
-          id: newItemId,
+        const newItem = {
+          id: uid('it'),
           exId: ex.id,
           sets: 3,
           reps: '۱۰ تا ۱۲',
           rest: '۷۵ ثانیه',
           note: '',
-        });
+        };
+        const sortOrder = day.items.length;
+        day.items.push(newItem);
         STATE.ui.coachExpandedDays[dayId] = true;
-        STATE.ui.coachExpandedItems[newItemId] = true;
+        STATE.ui.coachExpandedItems[newItem.id] = true;
         saveState();
-        this.showToast(`«${ex.name}» به برنامه اضافه شد.`, 'success');
+
+        try {
+          await this.persistItem(sid, dayId, newItem, sortOrder);
+          this.showToast(`«${ex.name}» به برنامه اضافه شد.`, 'success');
+        } catch (err) {
+          console.error(err);
+          this.showToast('افزودن محلی انجام شد؛ خطا در ارتباط با سرور.', 'error');
+        }
         this.renderMainView();
       },
 
-      moveExerciseItem(dayId, itemId, dir) {
+      async moveExerciseItem(dayId, itemId, dir) {
         const sid = STATE.ui.coachSelectedStudentId;
         const day = (STATE.programs[sid] || []).find(d => d.id === dayId);
         if (!day) return;
@@ -1847,26 +2252,48 @@
         day.items[idx] = day.items[targetIdx];
         day.items[targetIdx] = tmp;
         saveState();
+
+        try {
+          await Promise.all([
+            this.persistItem(sid, dayId, day.items[idx], idx),
+            this.persistItem(sid, dayId, day.items[targetIdx], targetIdx),
+          ]);
+        } catch (err) {
+          console.error(err);
+        }
         this.renderMainView();
       },
 
-      deleteExerciseItem(dayId, itemId) {
+      async deleteExerciseItem(dayId, itemId) {
         const sid = STATE.ui.coachSelectedStudentId;
         const day = (STATE.programs[sid] || []).find(d => d.id === dayId);
         if (!day) return;
         day.items = day.items.filter(x => x.id !== itemId);
         delete STATE.ui.coachExpandedItems[itemId];
         saveState();
+
+        try {
+          await SB.deleteWhere('program_items', `id=eq.${encodeURIComponent(itemId)}`);
+          this.showToast('تمرین حذف شد.');
+        } catch (err) {
+          console.error(err);
+        }
         this.renderMainView();
       },
 
-      updateExerciseItem(dayId, itemId, field, value) {
+      async updateExerciseItem(dayId, itemId, field, value) {
         const sid = STATE.ui.coachSelectedStudentId;
         const day = (STATE.programs[sid] || []).find(d => d.id === dayId);
-        const item = day ? day.items.find(x => x.id === itemId) : null;
-        if (!item) return;
-        item[field] = value;
+        const idx = day ? day.items.findIndex(x => x.id === itemId) : -1;
+        if (!day || idx < 0) return;
+        day.items[idx][field] = value;
         saveState();
+
+        try {
+          await this.persistItem(sid, dayId, day.items[idx], idx);
+        } catch (err) {
+          console.error(err);
+        }
       },
 
       // ---------------------------------------------------------------------
@@ -1987,7 +2414,7 @@
       },
 
       // ---------------------------------------------------------------------
-      // STUDENT PANEL (ONLY ASSIGNED DAYS & EXERCISES)
+      // STUDENT PANEL
       // ---------------------------------------------------------------------
       renderStudentPanel() {
         const student = STATE.students.find(s => s.id === STATE.session.userId);
@@ -2028,7 +2455,6 @@
               </section>
             ` : `
               <section class="bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-6 border border-slate-200/80 dark:border-slate-800 space-y-5">
-                <!-- Day Selector Tabs -->
                 <div class="flex flex-wrap gap-2">
                   ${days.map((d, idx) => `
                     <button
@@ -2045,7 +2471,6 @@
                   `).join('')}
                 </div>
 
-                <!-- Assigned Exercises List -->
                 ${!activeDay || activeDay.items.length === 0 ? `
                   <div class="text-center py-8 text-xs sm:text-sm text-slate-500">در این روز هنوز حرکتی ثبت نشده است.</div>
                 ` : `
@@ -2124,16 +2549,20 @@
         this.renderMainView();
       },
 
-      toggleItemDone(itemId) {
-        STATE.completedItems[itemId] = !STATE.completedItems[itemId];
+      async toggleItemDone(itemId) {
+        const nextVal = !STATE.completedItems[itemId];
+        STATE.completedItems[itemId] = nextVal;
         saveState();
         this.renderMainView();
+        try {
+          await this.persistCompletedItem(itemId, nextVal);
+        } catch (err) {
+          console.error(err);
+        }
       },
 
       // ---------------------------------------------------------------------
       // EXERCISE DETAILS MODAL
-      // The animation area is intentionally EMPTY. To add an animation later,
-      // fill in UI.mountExerciseAnimation() below (it receives the empty slot).
       // ---------------------------------------------------------------------
       openExerciseAnimation(exId, itemId = null) {
         const meta = EX_BY_ID[exId];
@@ -2171,7 +2600,6 @@
               </button>
             </div>
 
-            <!-- ANIMATION SLOT (empty on purpose) -->
             <div id="exerciseAnimSlot"
                  data-exercise-id="${meta.id}" data-group="${meta.group}" data-arch="${meta.arch}" data-equip="${meta.equip}"
                  class="mt-4 min-h-[260px] rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 flex items-center justify-center text-xs font-bold text-slate-400 dark:text-slate-500">
@@ -2203,9 +2631,6 @@
         this.mountExerciseAnimation(document.getElementById('exerciseAnimSlot'), meta, assignedItem);
       },
 
-      // Hook for the future animation. Put your code here, e.g.:
-      //   slot.innerHTML = '<svg>…</svg>';
-      // If it starts a timer/rAF, set  this.animCleanup = () => { …stop it… };
       mountExerciseAnimation(slot, meta, assignedItem) {
         // intentionally empty
       },
@@ -2248,13 +2673,13 @@
       }
     });
 
-    // Site logo (transparent PNG, embedded) -> header, drawer, favicon
-    const SITE_LOGO = 'data:image/png;base64,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';
+    const SITE_LOGO = 'data:image/png;base64,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';
     document.querySelectorAll('img[data-logo]').forEach(i => { i.src = SITE_LOGO; });
     const siteFavicon = document.getElementById('siteFavicon');
     if (siteFavicon) siteFavicon.href = SITE_LOGO;
 
     UI.renderAll();
+    UI.syncFromSupabase(false);
   </script>
 </body>
 </html>
