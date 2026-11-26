@@ -1,577 +1,2260 @@
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>اوروسیس — دنیای فردا</title>
-<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@100;300;400;700;900&display=swap" rel="stylesheet">
-<style>
-  :root {
-    --bg: #020408;
-    --surface: #070d14;
-    --accent: #00c8ff;
-    --accent2: #0066ff;
-    --glow: rgba(0,200,255,0.15);
-    --text: #c8dde8;
-    --muted: #4a6070;
-    --border: rgba(0,200,255,0.12);
-    --font: 'Vazirmatn', sans-serif;
-  }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mehdi Fit | آکادمی مربیگری بدنسازی</title>
+  <link rel="icon" type="image/png" id="siteFavicon" href="data:," />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap" />
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Vazirmatn', 'Tahoma', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#fff7ed',
+              100: '#ffedd5',
+              200: '#fed7aa',
+              300: '#fdba74',
+              400: '#fb923c',
+              500: '#f97316',
+              600: '#ea580c',
+              700: '#c2410c',
+              800: '#9a3412',
+              900: '#7c2d12',
+            }
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    * {
+      font-family: 'Vazirmatn', Tahoma, sans-serif;
+    }
+    html {
+      scroll-behavior: smooth;
+    }
+    body {
+      overflow-x: hidden;
+    }
 
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+    /* Smooth accordion transition */
+    .accordion-content {
+      transition: max-height 0.3s ease, opacity 0.25s ease;
+    }
 
-  html { scroll-behavior: smooth; }
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 7px;
+      height: 7px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(148, 163, 184, 0.12);
+      border-radius: 999px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(100, 116, 139, 0.45);
+      border-radius: 999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(234, 88, 12, 0.75);
+    }
 
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--font);
-    overflow-x: hidden;
-    cursor: none;
-  }
-
-  /* CURSOR */
-  .cursor {
-    position: fixed;
-    width: 10px; height: 10px;
-    background: var(--accent);
-    border-radius: 50%;
-    pointer-events: none;
-    z-index: 9999;
-    transform: translate(-50%,-50%);
-    transition: transform 0.1s;
-    box-shadow: 0 0 20px var(--accent), 0 0 60px rgba(0,200,255,0.3);
-  }
-  .cursor-ring {
-    position: fixed;
-    width: 36px; height: 36px;
-    border: 1px solid rgba(0,200,255,0.5);
-    border-radius: 50%;
-    pointer-events: none;
-    z-index: 9998;
-    transform: translate(-50%,-50%);
-    transition: all 0.15s ease;
-  }
-
-  /* STARS CANVAS */
-  #stars {
-    position: fixed;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    z-index: 0;
-  }
-
-  /* NAV */
-  nav {
-    position: fixed;
-    top: 0; left: 0; right: 0;
-    z-index: 100;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 24px 60px;
-    background: linear-gradient(to bottom, rgba(2,4,8,0.95), transparent);
-    border-bottom: 1px solid transparent;
-    transition: border-color 0.3s, background 0.3s;
-  }
-  nav.scrolled {
-    background: rgba(2,4,8,0.92);
-    border-color: var(--border);
-    backdrop-filter: blur(12px);
-  }
-
-  .logo {
-    font-size: 22px;
-    font-weight: 900;
-    letter-spacing: 6px;
-    color: var(--accent);
-    text-transform: uppercase;
-    text-shadow: 0 0 30px rgba(0,200,255,0.6);
-    text-decoration: none;
-  }
-
-  .nav-links {
-    display: flex;
-    gap: 40px;
-    list-style: none;
-  }
-  .nav-links a {
-    color: var(--muted);
-    text-decoration: none;
-    font-size: 13px;
-    letter-spacing: 2px;
-    transition: color 0.3s;
-    position: relative;
-  }
-  .nav-links a::after {
-    content: '';
-    position: absolute;
-    bottom: -4px; left: 0; right: 0;
-    height: 1px;
-    background: var(--accent);
-    transform: scaleX(0);
-    transition: transform 0.3s;
-  }
-  .nav-links a:hover { color: var(--accent); }
-  .nav-links a:hover::after { transform: scaleX(1); }
-
-  /* HERO */
-  .hero {
-    position: relative;
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    z-index: 1;
-    padding: 0 40px;
-  }
-
-  .hero-tag {
-    font-size: 11px;
-    letter-spacing: 6px;
-    color: var(--accent);
-    text-transform: uppercase;
-    margin-bottom: 24px;
-    opacity: 0;
-    animation: fadeUp 1s 0.5s forwards;
-  }
-
-  .hero-title {
-    font-size: clamp(64px, 10vw, 130px);
-    font-weight: 900;
-    line-height: 1;
-    color: #fff;
-    letter-spacing: -2px;
-    opacity: 0;
-    animation: fadeUp 1s 0.8s forwards;
-    text-shadow: 0 0 80px rgba(0,200,255,0.25);
-  }
-
-  .hero-title span {
-    color: transparent;
-    -webkit-text-stroke: 1px rgba(0,200,255,0.6);
-  }
-
-  .hero-subtitle {
-    font-size: 16px;
-    font-weight: 300;
-    color: var(--muted);
-    max-width: 560px;
-    line-height: 1.9;
-    margin-top: 28px;
-    opacity: 0;
-    animation: fadeUp 1s 1.1s forwards;
-  }
-
-  .hero-cta {
-    display: flex;
-    gap: 20px;
-    margin-top: 52px;
-    opacity: 0;
-    animation: fadeUp 1s 1.4s forwards;
-  }
-
-  .btn-primary {
-    padding: 14px 36px;
-    background: var(--accent);
-    color: #000;
-    font-family: var(--font);
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: 2px;
-    border: none;
-    cursor: pointer;
-    clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
-    transition: all 0.3s;
-    text-decoration: none;
-  }
-  .btn-primary:hover {
-    background: #fff;
-    box-shadow: 0 0 40px rgba(0,200,255,0.5);
-    transform: translateY(-2px);
-  }
-
-  .btn-ghost {
-    padding: 14px 36px;
-    background: transparent;
-    color: var(--accent);
-    font-family: var(--font);
-    font-size: 13px;
-    font-weight: 400;
-    letter-spacing: 2px;
-    border: 1px solid var(--border);
-    cursor: pointer;
-    clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
-    transition: all 0.3s;
-    text-decoration: none;
-  }
-  .btn-ghost:hover {
-    background: var(--glow);
-    border-color: var(--accent);
-  }
-
-  /* SCROLL LINE */
-  .scroll-hint {
-    position: absolute;
-    bottom: 40px;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    opacity: 0;
-    animation: fadeIn 1s 2s forwards;
-  }
-  .scroll-hint span {
-    font-size: 10px;
-    letter-spacing: 3px;
-    color: var(--muted);
-    text-transform: uppercase;
-  }
-  .scroll-line {
-    width: 1px;
-    height: 60px;
-    background: linear-gradient(to bottom, var(--accent), transparent);
-    animation: scrollPulse 2s infinite;
-  }
-
-  /* SECTIONS */
-  section { position: relative; z-index: 1; }
-
-  /* INTRO BAND */
-  .intro-band {
-    padding: 120px 60px;
-    display: grid;
-    grid-template-columns: 1fr 2px 1fr;
-    gap: 80px;
-    align-items: center;
-    max-width: 1200px;
-    margin: 0 auto;
-  }
-  .intro-divider {
-    width: 2px;
-    height: 200px;
-    background: linear-gradient(to bottom, transparent, var(--accent), transparent);
-  }
-  .intro-label {
-    font-size: 10px;
-    letter-spacing: 5px;
-    color: var(--accent);
-    text-transform: uppercase;
-    margin-bottom: 20px;
-  }
-  .intro-heading {
-    font-size: 40px;
-    font-weight: 700;
-    color: #fff;
-    line-height: 1.2;
-    margin-bottom: 20px;
-  }
-  .intro-text {
-    font-size: 15px;
-    font-weight: 300;
-    color: var(--muted);
-    line-height: 2;
-  }
-  .stat-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 32px;
-  }
-  .stat-item {}
-  .stat-num {
-    font-size: 48px;
-    font-weight: 900;
-    color: var(--accent);
-    display: block;
-    line-height: 1;
-  }
-  .stat-desc {
-    font-size: 12px;
-    letter-spacing: 2px;
-    color: var(--muted);
-    text-transform: uppercase;
-    margin-top: 8px;
-  }
-
-  /* FEATURES */
-  .features {
-    padding: 80px 60px 140px;
-    max-width: 1200px;
-    margin: 0 auto;
-  }
-  .section-header {
-    text-align: center;
-    margin-bottom: 80px;
-  }
-  .section-label {
-    font-size: 10px;
-    letter-spacing: 6px;
-    color: var(--accent);
-    text-transform: uppercase;
-    margin-bottom: 16px;
-  }
-  .section-title {
-    font-size: 42px;
-    font-weight: 700;
-    color: #fff;
-  }
-
-  .features-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 2px;
-    background: var(--border);
-  }
-  .feature-card {
-    background: var(--surface);
-    padding: 48px 36px;
-    position: relative;
-    overflow: hidden;
-    transition: background 0.3s;
-  }
-  .feature-card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 2px;
-    background: linear-gradient(to right, transparent, var(--accent), transparent);
-    transform: scaleX(0);
-    transition: transform 0.4s;
-  }
-  .feature-card:hover { background: #0a1520; }
-  .feature-card:hover::before { transform: scaleX(1); }
-
-  .feature-icon {
-    font-size: 32px;
-    margin-bottom: 24px;
-    display: block;
-  }
-  .feature-title {
-    font-size: 18px;
-    font-weight: 700;
-    color: #fff;
-    margin-bottom: 12px;
-  }
-  .feature-text {
-    font-size: 13px;
-    font-weight: 300;
-    color: var(--muted);
-    line-height: 1.9;
-  }
-
-  /* FOOTER */
-  footer {
-    border-top: 1px solid var(--border);
-    padding: 60px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    z-index: 1;
-    position: relative;
-  }
-  .footer-logo {
-    font-size: 18px;
-    font-weight: 900;
-    letter-spacing: 6px;
-    color: var(--accent);
-  }
-  .footer-copy {
-    font-size: 12px;
-    color: var(--muted);
-    letter-spacing: 1px;
-  }
-  .footer-links {
-    display: flex;
-    gap: 32px;
-    list-style: none;
-  }
-  .footer-links a {
-    font-size: 12px;
-    color: var(--muted);
-    text-decoration: none;
-    letter-spacing: 2px;
-    transition: color 0.3s;
-  }
-  .footer-links a:hover { color: var(--accent); }
-
-  /* GLITCH LINE */
-  .scanline {
-    position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 2px,
-      rgba(0,0,0,0.03) 2px,
-      rgba(0,0,0,0.03) 4px
-    );
-    pointer-events: none;
-    z-index: 200;
-  }
-
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(30px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
-  @keyframes scrollPulse {
-    0%,100% { opacity: 1; }
-    50% { opacity: 0.2; }
-  }
-</style>
+  </style>
 </head>
-<body>
+<body class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 antialiased selection:bg-brand-500 selection:text-white min-h-screen flex flex-col">
 
-<div class="scanline"></div>
-<div class="cursor" id="cursor"></div>
-<div class="cursor-ring" id="cursorRing"></div>
-<canvas id="stars"></canvas>
+  <!-- ===================================================================== -->
+  <!-- TOP NAVIGATION BAR WITH HAMBURGER MENU & ROLE/AUTH CONTROLS          -->
+  <!-- ===================================================================== -->
+  <header class="sticky top-0 z-40 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800/80">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-3">
+      <!-- Right: Hamburger Button + Brand Logo -->
+      <div class="flex items-center gap-3">
+        <button
+          type="button"
+          id="hamburgerBtn"
+          onclick="UI.toggleDrawer(true)"
+          aria-label="باز کردن منوی ناوبری"
+          class="p-2.5 rounded-xl bg-slate-100 hover:bg-brand-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200/70 dark:border-slate-700 transition flex items-center justify-center"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
 
-<nav id="nav">
-  <a href="index.html" class="logo">ORUSIS</a>
-  <ul class="nav-links">
-    <li><a href="index.html">خانه</a></li>
-    <li><a href="story.html">داستان</a></li>
-    <li><a href="characters.html">شخصیت‌ها</a></li>
-    <li><a href="timeline.html">ترتیب زمانی</a></li>
-  </ul>
-</nav>
-
-<section class="hero">
-  <p class="hero-tag">// دنیایی در دل کهکشان</p>
-  <h1 class="hero-title">اورو<span>سیس</span></h1>
-  <p class="hero-subtitle">
-    در سال‌هایی که زمین دیگر کافی نبود، انسان به ستاره‌ها رسید.
-    اوروسیس — آخرین امید، اولین خطر.
-  </p>
-  <div class="hero-cta">
-    <a href="story.html" class="btn-primary">ورود به داستان</a>
-    <a href="characters.html" class="btn-ghost">شخصیت‌ها</a>
-  </div>
-  <div class="scroll-hint">
-    <span>اسکرول</span>
-    <div class="scroll-line"></div>
-  </div>
-</section>
-
-<section>
-  <div class="intro-band">
-    <div>
-      <p class="intro-label">// درباره اوروسیس</p>
-      <h2 class="intro-heading">یک دنیا.<br>هزار راز.<br>یک انتخاب.</h2>
-      <p class="intro-text">اوروسیس سیاره‌ای است در حاشیه کهکشان راه شیری — جایی که تکنولوژی با بقا درهم آمیخته و انسان‌ها برای کنترل آخرین منابع می‌جنگند.</p>
-    </div>
-    <div class="intro-divider"></div>
-    <div class="stat-grid">
-      <div class="stat-item">
-        <span class="stat-num">۲۳۸۷</span>
-        <p class="stat-desc">سال وقوع داستان</p>
+        <button
+          type="button"
+          onclick="UI.navigate('home')"
+          class="flex items-center gap-2.5 text-right group focus:outline-none"
+        >
+          <img data-logo alt="Mehdi Fit" class="h-10 w-auto shrink-0 group-hover:scale-105 transition dark:bg-slate-100 dark:rounded-lg dark:p-1" />
+          <div>
+            <div class="font-extrabold text-sm sm:text-base leading-tight text-slate-900 dark:text-white">
+              <span dir="ltr" class="tracking-tight">Mehdi <span class="text-brand-600">Fit</span></span>
+            </div>
+            <div class="text-[11px] text-slate-500 dark:text-slate-400 hidden sm:block">
+              سامانه هوشمند برنامه و آناتومی بدنسازی
+            </div>
+          </div>
+        </button>
       </div>
-      <div class="stat-item">
-        <span class="stat-num">۷</span>
-        <p class="stat-desc">بخش اصلی دنیا</p>
+
+      <!-- Left: Theme Toggle + Login/User Status -->
+      <div class="flex items-center gap-2" id="headerAuthArea"></div>
+    </div>
+  </header>
+
+  <!-- ===================================================================== -->
+  <!-- HAMBURGER SLIDE-OUT DRAWER                                            -->
+  <!-- ===================================================================== -->
+  <div id="drawerBackdrop" onclick="UI.toggleDrawer(false)" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs hidden opacity-0 transition-opacity duration-200"></div>
+  <aside
+    id="navDrawer"
+    aria-label="منوی اصلی"
+    class="fixed top-0 right-0 bottom-0 z-50 w-80 max-w-[85vw] bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-2xl transform translate-x-full transition-transform duration-300 flex flex-col justify-between"
+  >
+    <div class="p-5 overflow-y-auto space-y-6">
+      <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
+        <div class="flex items-center gap-2.5">
+          <img data-logo alt="Mehdi Fit" class="h-9 w-auto shrink-0 dark:bg-slate-100 dark:rounded-lg dark:p-1" />
+          <div>
+            <div class="font-extrabold text-sm">منوی <span dir="ltr">Mehdi Fit</span></div>
+            <div class="text-xs text-slate-500 dark:text-slate-400" id="drawerUserStatus">حالت مهمان</div>
+          </div>
+        </div>
+        <button
+          type="button"
+          onclick="UI.toggleDrawer(false)"
+          aria-label="بستن منو"
+          class="p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
       </div>
-      <div class="stat-item">
-        <span class="stat-num">۱۲+</span>
-        <p class="stat-desc">شخصیت اصلی</p>
+
+      <div class="space-y-1.5">
+        <div class="text-xs font-bold text-slate-400 px-3 mb-2">صفحات سایت</div>
+        <button type="button" onclick="UI.navigate('home'); UI.toggleDrawer(false)" class="drawer-link w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-right transition">
+          <span class="w-2 h-2 rounded-full bg-brand-500"></span>
+          <span>صفحه خانه (علم بدنسازی و ابزارها)</span>
+        </button>
+        <button type="button" onclick="UI.navigate('about'); UI.toggleDrawer(false)" class="drawer-link w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-right transition">
+          <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+          <span>درباره ما (معرفی استاد و سوابق)</span>
+        </button>
+        <button type="button" onclick="UI.navigate('contact'); UI.toggleDrawer(false)" class="drawer-link w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-right transition">
+          <span class="w-2 h-2 rounded-full bg-sky-500"></span>
+          <span>ارتباط با ما و سیستم تیکتینگ</span>
+        </button>
+        <button type="button" onclick="UI.navigate('panel'); UI.toggleDrawer(false)" class="drawer-link w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-right transition">
+          <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+          <span>پنل کاربری (مربی / شاگرد)</span>
+        </button>
       </div>
-      <div class="stat-item">
-        <span class="stat-num">∞</span>
-        <p class="stat-desc">احتمال پایان</p>
+
+      <div class="bg-slate-50 dark:bg-slate-800/70 rounded-2xl p-4 border border-slate-200/70 dark:border-slate-700/70 space-y-2.5">
+        <div class="text-xs font-extrabold text-brand-600 dark:text-brand-400">نکته دسترسی حرکات</div>
+        <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+          کتابخانه ۶۳ حرکت بدنسازی فقط در اختیار <strong>مربی</strong> برای تنظیم برنامه است و هر شاگرد تنها به حرکات و انیمیشن‌های برنامه اختصاصی خود دسترسی دارد.
+        </p>
       </div>
     </div>
-  </div>
-</section>
 
-<section class="features">
-  <div class="section-header">
-    <p class="section-label">// ستون‌های این دنیا</p>
-    <h2 class="section-title">چه چیزی اوروسیس را می‌سازد؟</h2>
-  </div>
-  <div class="features-grid">
-    <div class="feature-card">
-      <span class="feature-icon">⬡</span>
-      <h3 class="feature-title">جهان‌سازی عمیق</h3>
-      <p class="feature-text">از جغرافیای سیاره تا سیاست فراکسیون‌ها — هر جزئیات این دنیا با دقت طراحی شده است.</p>
+    <div class="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/80 space-y-2" id="drawerFooter"></div>
+  </aside>
+
+  <!-- ===================================================================== -->
+  <!-- TOAST NOTIFICATION BANNER                                             -->
+  <!-- ===================================================================== -->
+  <div id="toastBox" class="fixed bottom-5 left-1/2 -translate-x-1/2 z-[70] pointer-events-none flex flex-col items-center gap-2 max-w-md w-full px-4"></div>
+
+  <!-- ===================================================================== -->
+  <!-- MAIN DYNAMIC VIEW CONTAINER                                           -->
+  <!-- ===================================================================== -->
+  <main id="mainView" class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8"></main>
+
+  <!-- ===================================================================== -->
+  <!-- FOOTER                                                                -->
+  <!-- ===================================================================== -->
+  <footer class="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 mt-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500 dark:text-slate-400">
+      <div>© ۲۰۲۵ <span dir="ltr">Mehdi Fit</span> — تمامی حقوق محفوظ است.</div>
+      <div class="flex flex-wrap items-center gap-4">
+        <button type="button" onclick="UI.navigate('home')" class="hover:text-brand-600 transition">صفحه خانه</button>
+        <button type="button" onclick="UI.navigate('about')" class="hover:text-brand-600 transition">درباره ما</button>
+        <button type="button" onclick="UI.navigate('contact')" class="hover:text-brand-600 transition">ارتباط با ما</button>
+        <button type="button" onclick="UI.resetDemoData()" class="text-rose-600 dark:text-rose-400 hover:underline">بازنشانی اطلاعات نمونه</button>
+      </div>
     </div>
-    <div class="feature-card">
-      <span class="feature-icon">◈</span>
-      <h3 class="feature-title">شخصیت‌های پیچیده</h3>
-      <p class="feature-text">هیچ‌کس کاملاً خوب یا بد نیست. هر انتخاب، هزینه دارد و هر شخصیت داستانی جدا می‌زید.</p>
-    </div>
-    <div class="feature-card">
-      <span class="feature-icon">◉</span>
-      <h3 class="feature-title">روایت غیرخطی</h3>
-      <p class="feature-text">داستان‌ها از زوایای مختلف روایت می‌شوند. هر بار که می‌خوانی، تکه‌ای تازه کشف می‌کنی.</p>
-    </div>
-  </div>
-</section>
+  </footer>
 
-<footer>
-  <div class="footer-logo">ORUSIS</div>
-  <p class="footer-copy">© ۱۴۰۳ اوروسیس — تمام حقوق محفوظ است</p>
-  <ul class="footer-links">
-    <li><a href="story.html">داستان</a></li>
-    <li><a href="characters.html">شخصیت‌ها</a></li>
-    <li><a href="timeline.html">خط زمانی</a></li>
-  </ul>
-</footer>
+  <!-- ===================================================================== -->
+  <!-- MODAL CONTAINER (LOGIN / REGISTER / COACH EXERCISE PICKER / ANIMATION) -->
+  <!-- ===================================================================== -->
+  <div id="modalRoot" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-950/65 backdrop-blur-xs overflow-y-auto"></div>
 
-<script>
-  // CURSOR
-  const cursor = document.getElementById('cursor');
-  const ring = document.getElementById('cursorRing');
-  let mx=0,my=0,rx=0,ry=0;
-  document.addEventListener('mousemove',e=>{
-    mx=e.clientX; my=e.clientY;
-    cursor.style.left=mx+'px'; cursor.style.top=my+'px';
-  });
-  function animRing(){
-    rx+=(mx-rx)*0.12; ry+=(my-ry)*0.12;
-    ring.style.left=rx+'px'; ring.style.top=ry+'px';
-    requestAnimationFrame(animRing);
-  } animRing();
+  <script>
+    // =======================================================================
+    // 1. EXERCISE CATALOG (63 EXERCISES ACROSS 5 GROUPS - COACH & ASSIGNED ONLY)
+    // =======================================================================
+    const GROUPS = [
+      { id: 'chest', label: 'حرکات سینه' },
+      { id: 'shoulder', label: 'سر شانه' },
+      { id: 'triceps', label: 'پشت بازو' },
+      { id: 'biceps', label: 'جلو بازو' },
+      { id: 'back', label: 'زیر بغل' },
+    ];
 
-  // NAV SCROLL
-  window.addEventListener('scroll',()=>{
-    document.getElementById('nav').classList.toggle('scrolled', window.scrollY>50);
-  });
+    const RAW_EXERCISES = {
+      chest: [
+        'پرس سینه هالتر',
+        'پرس بالا سینه هالتر',
+        'پرس سینه دمبل',
+        'پرس بالا سینه دمبل',
+        'فلای سینه',
+        'کراس اور',
+        'قفسه سینه دمبل',
+        'کراس دون',
+        'پرس سینه دستگاه',
+        'پرس بالا سینه دستگاه',
+        'زیر سینه هالتر',
+        'زیر سینه دمبل',
+      ],
+      shoulder: [
+        'پرس سر شانه دمبل',
+        'پرس سر شانه هالتر',
+        'نشر جانب دمبل',
+        'نشر جانب سیم کش تک دست',
+        'نشر جلو دمبل',
+        'نشر جلو دمبل چکشی',
+        'نشر جلو سیم کش طناب',
+        'نشر خم دمبل',
+        'نشر خم سیم کش',
+        'فیس پول',
+        'فلای بک',
+        'شراکز سیم کش',
+        'شراکز هالتر',
+        'شراکز دمبل',
+        'پرس سر شانه دستگاه',
+      ],
+      triceps: [
+        'پشت بازو طناب',
+        'پشت بازو دیپ',
+        'پشت بازو دیپ دستگاه',
+        'پشت بازو سیم کش میله',
+        'پشت بازو هالتر خوابیده',
+        'پشت بازو کیک بک دمبل',
+        'پشت بازو کیک بک سیم کش',
+        'پشت بازو سیم کش طناب از پایین(دون)',
+      ],
+      biceps: [
+        'جلو بازو دمبل',
+        'جلو بازو دمبل چکشی',
+        'جلو بازو هالتر',
+        'جلو بازو هالتر مچ برعکس',
+        'جلو بازو هالتر ایزی',
+        'جلو بازو سیم کش میله',
+        'جلو بازو سیم کش طناب چکشی',
+        'جلو بازو فیگوری سیم کش',
+        'جلو بازو دمبل لاری',
+        'جلو بازو هالتر لاری',
+      ],
+      back: [
+        'زیر بغل لت از جلو',
+        'زیر بغل لت مچ برعکس',
+        'زیر بغل لت دست عرض شانه',
+        'زیر بغل لت تک دست',
+        'زیر بغل قایقی',
+        'زیربغل قایقی مچ برعکس',
+        'زیر بغل قایقی دست باز',
+        'زیر بغل قایقی دست وی',
+        'زیر بغل قایقی تک دست',
+        'زیر بغل قایقی طناب',
+        'زیر بغل اره ای',
+        'زیر بغل هالتر خم',
+        'زیر بغل دستگاه',
+        'لیفت زیر بغل',
+        'بارفیکس',
+        'بارفیکس کمکی',
+        'زیر بغل پول آور سیم کش طناب',
+        'زیر بغل پول آور دمبل',
+      ],
+    };
 
-  // STARS
-  const canvas = document.getElementById('stars');
-  const ctx = canvas.getContext('2d');
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-  const stars = Array.from({length:200},()=>({
-    x:Math.random()*canvas.width,
-    y:Math.random()*canvas.height,
-    r:Math.random()*1.2+0.2,
-    a:Math.random(),
-    s:Math.random()*0.005+0.001
-  }));
-  function drawStars(){
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-    stars.forEach(s=>{
-      s.a+=s.s; if(s.a>1||s.a<0) s.s*=-1;
-      ctx.beginPath();
-      ctx.arc(s.x,s.y,s.r,0,Math.PI*2);
-      ctx.fillStyle=`rgba(200,220,255,${s.a*0.8})`;
-      ctx.fill();
+    function classifyExercise(name, group) {
+      const n = name.replace(/\s+/g, '');
+      let equip = 'dumbbell';
+      if (n.includes('هالتر') || n.includes('ایزی')) equip = 'barbell';
+      else if (n.includes('دمبل') || n.includes('اره')) equip = 'dumbbell';
+      else if (n.includes('سیمکش') || n.includes('کراس') || n.includes('فیسپول') || n.includes('لت') || n.includes('قایقی') || n.includes('پولآور') || n.includes('طناب')) equip = 'cable';
+      else if (n.includes('دستگاه')) equip = 'machine';
+      else if (n.includes('بارفیکس') || n.includes('دیپ')) equip = 'bodyweight';
+
+      let arch = 'bicep_curl';
+      if (group === 'chest') {
+        if (n.includes('بالاسینه')) arch = 'incline_press';
+        else if (n.includes('زیرسینه')) arch = 'decline_press';
+        else if (n.includes('فلای') || n.includes('قفسه')) arch = 'chest_fly';
+        else if (n.includes('کراسدون')) arch = 'cross_down';
+        else if (n.includes('کراس')) arch = 'crossover';
+        else arch = 'flat_press';
+      } else if (group === 'shoulder') {
+        if (n.includes('نشرجانب')) arch = 'lateral_raise';
+        else if (n.includes('نشرجلو')) arch = 'front_raise';
+        else if (n.includes('نشرخم') || n.includes('فلای بک')) arch = 'rear_delt';
+        else if (n.includes('فیسپول')) arch = 'face_pull';
+        else if (n.includes('شراکز')) arch = 'shrugs';
+        else arch = 'overhead_press';
+      } else if (group === 'triceps') {
+        if (n.includes('دیپ')) arch = 'tricep_dip';
+        else if (n.includes('کیکبک')) arch = 'kickback';
+        else if (n.includes('خوابیده')) arch = 'skullcrusher';
+        else if (n.includes('دون') || n.includes('ازپایین')) arch = 'cable_low_ext';
+        else arch = 'tricep_pushdown';
+      } else if (group === 'biceps') {
+        if (n.includes('چکشی')) arch = 'hammer_curl';
+        else if (n.includes('لاری')) arch = 'preacher_curl';
+        else if (n.includes('مچبرعکس')) arch = 'reverse_curl';
+        else if (n.includes('فیگوری')) arch = 'cable_curl';
+        else arch = 'bicep_curl';
+      } else if (group === 'back') {
+        if (n.includes('بارفیکس')) arch = 'pullup';
+        else if (n.includes('لت')) arch = 'lat_pulldown';
+        else if (n.includes('پولآور')) arch = 'pullover';
+        else if (n.includes('لیفت')) arch = 'deadlift_row';
+        else if (n.includes('اره')) arch = 'one_arm_row';
+        else if (n.includes('هالترخم')) arch = 'bent_over_row';
+        else arch = 'seated_row';
+      }
+
+      const phases = (arch === 'lateral_raise' || arch === 'front_raise' || arch === 'bicep_curl' || arch === 'hammer_curl' || arch === 'preacher_curl' || arch === 'reverse_curl' || arch === 'cable_curl' || arch === 'pullup' || arch === 'shrugs')
+        ? ['فاز انقباض / بالا بردن', 'فاز کنترل و بازگشت']
+        : ['فاز اجرا و فشار اصلی', 'فاز کنترل و بازگشت'];
+
+      const cues = [
+        `حفظ وضعیت ثابت ستون فقرات و کنترل کامل دامنه حرکتی در «${name}».`,
+        'تنفس منظم: بازدم در لحظه اعمال فشار اصلی و دم در فاز برگشت.',
+        'پرهیز از تاب دادن بدن یا استفاده از مومنتوم اضافه برای حفظ تمرکز روی عضله هدف.',
+      ];
+
+      return { equip, arch, phases, cues };
+    }
+
+    const EXERCISES = [];
+    const EX_BY_ID = {};
+    const EX_BY_NAME = {};
+
+    GROUPS.forEach((grp) => {
+      (RAW_EXERCISES[grp.id] || []).forEach((name) => {
+        const id = 'ex_' + (EXERCISES.length + 1);
+        const meta = classifyExercise(name, grp.id);
+        const ex = {
+          id,
+          name,
+          group: grp.id,
+          groupLabel: grp.label,
+          ...meta,
+        };
+        EXERCISES.push(ex);
+        EX_BY_ID[id] = ex;
+        EX_BY_NAME[name] = ex;
+      });
     });
-    requestAnimationFrame(drawStars);
-  } drawStars();
 
-  window.addEventListener('resize',()=>{
-    canvas.width=window.innerWidth;
-    canvas.height=window.innerHeight;
-  });
-</script>
+    // =======================================================================
+    // 3. STATE MANAGEMENT & PERSISTENCE (LOCALSTORAGE)
+    // =======================================================================
+    const STORAGE_KEY = 'ACADEMY_PRO_STATE_V1';
+
+    function uid(prefix = 'id') {
+      return prefix + '_' + Math.random().toString(36).slice(2, 9);
+    }
+
+    function createInitialState() {
+      const s1 = 'stu_ali';
+      const s2 = 'stu_sara';
+      const s3 = 'stu_reza';
+      const d1 = 'day_1';
+      const d2 = 'day_2';
+      const d3 = 'day_3';
+
+      return {
+        theme: 'light',
+        currentRoute: 'home',
+        session: {
+          role: 'guest', // 'guest' | 'coach' | 'student'
+          userId: null,
+          name: 'مهمان',
+        },
+        coachProfile: {
+          name: 'مهدی مرادی',
+          title: 'مربی بین‌المللی بدنسازی و فیزیک، متخصص آناتومی و برنامه‌نویسی تمرینی',
+          fullBodyPhoto: '', // Optional uploaded full-body photo dataURL
+          bio: 'با بیش از ۱۲ سال سابقه حرفه‌ای در تربیت ورزشکاران فیزیک، بادی‌کلاسیک و بازتوانی حرکتی. تمرکز اصلی من طراحی برنامه‌های علمی، شخصی‌سازی‌شده و کاملاً اصولی بر اساس آناتومی و بیومکانیک بدن هر شاگرد است.',
+          credentials: [
+            'مربی رسمی فدراسیون بدنسازی و پرورش اندام',
+            'تخصص بیومکانیک حرکت و اصلاح ناهنجاری‌های قامتی',
+            'تدوین بیش از ۱,۸۰۰ برنامه تخصصی تمرین و تغذیه',
+          ],
+          stats: {
+            experienceYears: '۱۲+',
+            activeStudents: '۸۵+',
+            programsDesigned: '۱۸۰۰+',
+          },
+        },
+        students: [
+          { id: s1, name: 'علی رضایی', code: '1001', goal: 'افزایش حجم عضلانی خشک', phone: '09120001001' },
+          { id: s2, name: 'سارا احمدی', code: '1002', goal: 'فرم‌دهی و تقویت بالاتنه', phone: '09120001002' },
+          { id: s3, name: 'رضا کاظمی', code: '1003', goal: 'کاهش چربی و حفظ قدرت', phone: '09120001003' },
+        ],
+        programs: {
+          [s1]: [
+            {
+              id: d1,
+              title: 'روز اول: سینه و پشت بازو',
+              items: [
+                { id: 'it_1', exId: EX_BY_NAME['پرس سینه هالتر'].id, sets: 4, reps: '۸ تا ۱۰', rest: '۹۰ ثانیه', note: 'دو ست گرم‌کردن سبک قبل از ست اصلی؛ آرنج‌ها زاویه ۴۵ درجه.' },
+                { id: 'it_2', exId: EX_BY_NAME['پرس بالا سینه دمبل'].id, sets: 3, reps: '۱۰ تا ۱۲', rest: '۷۵ ثانیه', note: 'کنترل کامل در فاز پایین آوردن دمبل‌ها.' },
+                { id: 'it_3', exId: EX_BY_NAME['کراس اور'].id, sets: 3, reps: '۱۲ تا ۱۵', rest: '۶۰ ثانیه', note: 'مکث یک ثانیه‌ای در نقطه انقباض سینه.' },
+                { id: 'it_4', exId: EX_BY_NAME['پشت بازو طناب'].id, sets: 4, reps: '۱۲', rest: '۶۰ ثانیه', note: 'باز کردن کامل طناب در انتهای حرکت بدون تکان دادن سرشانه.' },
+              ],
+            },
+            {
+              id: d2,
+              title: 'روز دوم: زیر بغل و جلو بازو',
+              items: [
+                { id: 'it_5', exId: EX_BY_NAME['بارفیکس'].id, sets: 4, reps: 'تا ناتوانی فنی', rest: '۹۰ ثانیه', note: 'شروع حرکت با انقباض عضلات پشت و سینه رو به بالا.' },
+                { id: 'it_6', exId: EX_BY_NAME['زیر بغل قایقی'].id, sets: 3, reps: '۱۰ تا ۱۲', rest: '۷۵ ثانیه', note: 'عدم خم کردن بیش از حد کمر به جلو.' },
+                { id: 'it_7', exId: EX_BY_NAME['جلو بازو هالتر'].id, sets: 3, reps: '۱۰', rest: '۷۵ ثانیه', note: 'آرنج‌ها کاملاً چسبیده به کناره‌های بدن.' },
+              ],
+            },
+          ],
+          [s2]: [
+            {
+              id: d3,
+              title: 'روز اول: سرشانه، پشت بازو و جلو بازو',
+              items: [
+                { id: 'it_8', exId: EX_BY_NAME['نشر جانب دمبل'].id, sets: 4, reps: '۱۵', rest: '۶۰ ثانیه', note: 'وزنه سبک و کنترل‌شده تا سطح شانه.' },
+                { id: 'it_9', exId: EX_BY_NAME['جلو بازو دمبل چکشی'].id, sets: 3, reps: '۱۲', rest: '۶۰ ثانیه', note: 'حفظ مچ دست در حالت خنثی.' },
+              ],
+            },
+          ],
+          [s3]: [],
+        },
+        completedItems: {},
+        tickets: [
+          {
+            id: 'tkt_1',
+            authorRole: 'student',
+            authorId: s1,
+            authorName: 'علی رضایی',
+            subject: 'سوال درباره استراحت بین ست‌های پرس سینه',
+            message: 'استاد سلام، در ست سوم پرس سینه هالتر اگر استراحت را به ۲ دقیقه برسانم اشکالی دارد؟',
+            createdAt: '۱۴۰۳/۰۸/۱۲ - ۱۸:۲۰',
+            replies: [
+              {
+                sender: 'مهدی مرادی (مربی)',
+                text: 'سلام علی جان. در ست‌های سنگین تا ۲ دقیقه زمان استراحت کاملاً مجاز است تا کیفیت اجرای تکرارهای بعدی حفظ شود.',
+                time: '۱۴۰۳/۰۸/۱۲ - ۱۹:۰۵',
+              },
+            ],
+          },
+        ],
+        ui: {
+          coachSelectedStudentId: s1,
+          coachExpandedDays: { [d1]: true, [d2]: false },
+          coachExpandedItems: {},
+          coachPicker: {
+            open: false,
+            dayId: null,
+            group: 'all',
+            search: '',
+          },
+          studentSelectedDayIndex: 0,
+        },
+      };
+    }
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return createInitialState();
+        const parsed = JSON.parse(raw);
+        const def = createInitialState();
+        if (parsed.coachProfile && parsed.coachProfile.name === 'استاد آرش رادمهر') parsed.coachProfile.name = def.coachProfile.name;
+        return {
+          ...def,
+          ...parsed,
+          session: { ...def.session, ...(parsed.session || {}) },
+          coachProfile: {
+            ...def.coachProfile,
+            ...(parsed.coachProfile || {}),
+            stats: { ...def.coachProfile.stats, ...((parsed.coachProfile && parsed.coachProfile.stats) || {}) },
+          },
+          ui: {
+            ...def.ui,
+            ...(parsed.ui || {}),
+            coachPicker: { ...def.ui.coachPicker, ...((parsed.ui && parsed.ui.coachPicker) || {}) },
+          },
+        };
+      } catch (err) {
+        return createInitialState();
+      }
+    }
+
+    let STATE = loadState();
+
+    function saveState() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(STATE));
+      } catch (err) {
+        console.warn('Storage quota or error:', err);
+      }
+    }
+
+    function applyTheme() {
+      const root = document.documentElement;
+      if (STATE.theme === 'dark') {
+        root.classList.add('dark');
+      } else {
+        root.classList.remove('dark');
+      }
+    }
+    applyTheme();
+
+    // =======================================================================
+    // 4. UI CONTROLLER & VIEWS
+    // =======================================================================
+    const UI = {
+      animCleanup: null,
+
+      escapeHtml(str) {
+        return String(str == null ? '' : str)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      },
+
+      toFaDigits(val) {
+        return String(val).replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
+      },
+
+      showToast(message, type = 'info') {
+        const box = document.getElementById('toastBox');
+        if (!box) return;
+        const el = document.createElement('div');
+        const colors = type === 'error'
+          ? 'bg-rose-600 text-white border-rose-500'
+          : type === 'success'
+          ? 'bg-emerald-600 text-white border-emerald-500'
+          : 'bg-slate-900 dark:bg-slate-800 text-white border-slate-700';
+        el.className = `pointer-events-auto px-4 py-2.5 rounded-xl border shadow-xl text-xs sm:text-sm font-semibold transition-all duration-300 ${colors}`;
+        el.textContent = message;
+        box.appendChild(el);
+        setTimeout(() => {
+          el.style.opacity = '0';
+          el.style.transform = 'translateY(8px)';
+          setTimeout(() => el.remove(), 300);
+        }, 2800);
+      },
+
+      toggleDrawer(open) {
+        const backdrop = document.getElementById('drawerBackdrop');
+        const drawer = document.getElementById('navDrawer');
+        if (!backdrop || !drawer) return;
+        if (open) {
+          backdrop.classList.remove('hidden');
+          requestAnimationFrame(() => {
+            backdrop.classList.remove('opacity-0');
+            drawer.classList.remove('translate-x-full');
+          });
+        } else {
+          backdrop.classList.add('opacity-0');
+          drawer.classList.add('translate-x-full');
+          setTimeout(() => {
+            backdrop.classList.add('hidden');
+          }, 280);
+        }
+      },
+
+      toggleTheme() {
+        STATE.theme = STATE.theme === 'dark' ? 'light' : 'dark';
+        applyTheme();
+        saveState();
+        this.renderChrome();
+      },
+
+      navigate(route) {
+        const valid = ['home', 'about', 'contact', 'panel'];
+        STATE.currentRoute = valid.includes(route) ? route : 'home';
+        saveState();
+        this.renderAll();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      },
+
+      logout() {
+        if (this.animCleanup) {
+          this.animCleanup();
+          this.animCleanup = null;
+        }
+        STATE.session = { role: 'guest', userId: null, name: 'مهمان' };
+        if (STATE.currentRoute === 'panel') {
+          STATE.currentRoute = 'home';
+        }
+        saveState();
+        this.showToast('از حساب کاربری خارج شدید.');
+        this.renderAll();
+      },
+
+      resetDemoData() {
+        localStorage.removeItem(STORAGE_KEY);
+        STATE = createInitialState();
+        applyTheme();
+        saveState();
+        this.showToast('اطلاعات نمونه با موفقیت بازنشانی شد.', 'success');
+        this.renderAll();
+      },
+
+      // ---------------------------------------------------------------------
+      // LOGIN & REGISTER MODAL
+      // ---------------------------------------------------------------------
+      openAuthModal(defaultTab = 'login') {
+        const root = document.getElementById('modalRoot');
+        root.innerHTML = `
+          <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl relative my-auto" onclick="event.stopPropagation()">
+            <button type="button" onclick="UI.closeModal()" aria-label="بستن پنجره" class="absolute top-5 left-5 p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+
+            <div class="mb-5">
+              <span class="inline-block text-xs font-bold px-2.5 py-1 rounded-lg bg-brand-100 text-brand-700 dark:bg-brand-900/50 dark:text-brand-300 mb-2">
+                تشخیص خودکار نقش (مربی یا شاگرد)
+              </span>
+              <h2 class="text-xl font-extrabold text-slate-900 dark:text-white">ورود یا ثبت‌نام در آکادمی</h2>
+              <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                حساب مربی و شاگردان به‌صورت خودکار تشخیص داده می‌شوند.
+              </p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl mb-5">
+              <button type="button" id="authTabLogin" onclick="UI.switchAuthTab('login')" class="py-2 rounded-lg text-xs sm:text-sm font-bold transition ${defaultTab === 'login' ? 'bg-white dark:bg-slate-900 text-brand-600 shadow-xs' : 'text-slate-600 dark:text-slate-400'}">
+                ورود به حساب
+              </button>
+              <button type="button" id="authTabRegister" onclick="UI.switchAuthTab('register')" class="py-2 rounded-lg text-xs sm:text-sm font-bold transition ${defaultTab === 'register' ? 'bg-white dark:bg-slate-900 text-brand-600 shadow-xs' : 'text-slate-600 dark:text-slate-400'}">
+                ثبت‌نام شاگرد جدید
+              </button>
+            </div>
+
+            <div id="authTabBody"></div>
+          </div>
+        `;
+        root.classList.remove('hidden');
+        root.classList.add('flex');
+        root.onclick = () => this.closeModal();
+        this.switchAuthTab(defaultTab);
+      },
+
+      switchAuthTab(tab) {
+        const loginBtn = document.getElementById('authTabLogin');
+        const regBtn = document.getElementById('authTabRegister');
+        const body = document.getElementById('authTabBody');
+        if (!body) return;
+
+        if (loginBtn && regBtn) {
+          loginBtn.className = `py-2 rounded-lg text-xs sm:text-sm font-bold transition ${tab === 'login' ? 'bg-white dark:bg-slate-900 text-brand-600 shadow-xs' : 'text-slate-600 dark:text-slate-400'}`;
+          regBtn.className = `py-2 rounded-lg text-xs sm:text-sm font-bold transition ${tab === 'register' ? 'bg-white dark:bg-slate-900 text-brand-600 shadow-xs' : 'text-slate-600 dark:text-slate-400'}`;
+        }
+
+        if (tab === 'login') {
+          body.innerHTML = `
+            <form onsubmit="UI.handleLoginSubmit(event)" class="space-y-4">
+              <div>
+                <label class="block text-xs font-bold mb-1.5 text-slate-700 dark:text-slate-300">
+                  شناسه ورود (نام کاربری مربی یا کد شاگردی)
+                </label>
+                <input
+                  type="text"
+                  id="loginIdentifier"
+                  required
+                  placeholder="مثال: coach یا کد شاگرد مثل 1001"
+                  class="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm focus:outline-none focus:border-brand-500"
+                />
+              </div>
+
+              <div class="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200/70 dark:border-slate-700/70 space-y-2">
+                <div class="text-xs font-bold text-slate-700 dark:text-slate-200">ورود سریع تستی:</div>
+                <div class="flex flex-wrap gap-2">
+                  <button type="button" onclick="UI.quickLogin('coach')" class="px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold transition">
+                    ورود مربی (coach)
+                  </button>
+                  ${STATE.students.slice(0, 3).map(st => `
+                    <button type="button" onclick="UI.quickLogin('${UI.escapeHtml(st.code)}')" class="px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 hover:bg-brand-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-xs font-semibold transition">
+                      شاگرد: ${UI.escapeHtml(st.name)} (${UI.toFaDigits(st.code)})
+                    </button>
+                  `).join('')}
+                </div>
+              </div>
+
+              <button type="submit" class="w-full py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-sm shadow-lg shadow-brand-600/25 transition">
+                ورود و تشخیص نقش
+              </button>
+            </form>
+          `;
+        } else {
+          body.innerHTML = `
+            <form onsubmit="UI.handleRegisterSubmit(event)" class="space-y-3.5">
+              <div>
+                <label class="block text-xs font-bold mb-1 text-slate-700 dark:text-slate-300">نام و نام خانوادگی</label>
+                <input type="text" id="regName" required placeholder="مثال: سارا محمدی" class="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm focus:outline-none focus:border-brand-500" />
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs font-bold mb-1 text-slate-700 dark:text-slate-300">کد ورود دلخواه (۴ رقم)</label>
+                  <input type="text" id="regCode" required placeholder="مثال: 1009" class="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm focus:outline-none focus:border-brand-500" />
+                </div>
+                <div>
+                  <label class="block text-xs font-bold mb-1 text-slate-700 dark:text-slate-300">هدف تمرینی</label>
+                  <input type="text" id="regGoal" placeholder="افزایش حجم / کاهش وزن" class="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm focus:outline-none focus:border-brand-500" />
+                </div>
+              </div>
+              <button type="submit" class="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-lg shadow-emerald-600/20 transition mt-2">
+                ثبت‌نام و ورود به پنل شاگرد
+              </button>
+            </form>
+          `;
+        }
+      },
+
+      quickLogin(identifier) {
+        this.authenticateIdentifier(identifier);
+      },
+
+      handleLoginSubmit(e) {
+        e.preventDefault();
+        const inp = document.getElementById('loginIdentifier');
+        if (!inp) return;
+        this.authenticateIdentifier(inp.value.trim());
+      },
+
+      authenticateIdentifier(rawId) {
+        const val = String(rawId || '').trim();
+        if (!val) return;
+
+        const lower = val.toLowerCase();
+        if (lower === 'coach' || lower === 'admin' || val === 'مربی' || val === 'ادمین') {
+          STATE.session = {
+            role: 'coach',
+            userId: 'coach_main',
+            name: STATE.coachProfile.name,
+          };
+          STATE.currentRoute = 'panel';
+          saveState();
+          this.closeModal();
+          this.showToast(`خوش آمدید ${STATE.coachProfile.name} (پنل مربی)`, 'success');
+          this.renderAll();
+          return;
+        }
+
+        const matchedStudent = STATE.students.find(
+          s => String(s.code).trim() === val || s.name.trim() === val
+        );
+
+        if (matchedStudent) {
+          STATE.session = {
+            role: 'student',
+            userId: matchedStudent.id,
+            name: matchedStudent.name,
+          };
+          STATE.ui.studentSelectedDayIndex = 0;
+          STATE.currentRoute = 'panel';
+          saveState();
+          this.closeModal();
+          this.showToast(`خوش آمدید ${matchedStudent.name} (پنل شاگرد)`, 'success');
+          this.renderAll();
+          return;
+        }
+
+        this.showToast('شناسه واردشده یافت نشد. از «coach» یا کد شاگردی مثل «1001» استفاده کنید.', 'error');
+      },
+
+      handleRegisterSubmit(e) {
+        e.preventDefault();
+        const name = (document.getElementById('regName')?.value || '').trim();
+        const code = (document.getElementById('regCode')?.value || '').trim();
+        const goal = (document.getElementById('regGoal')?.value || '').trim() || 'تناسب اندام و افزایش قدرت';
+
+        if (!name || !code) return;
+        if (STATE.students.some(s => String(s.code).trim() === code)) {
+          this.showToast('این کد ورود قبلاً ثبت شده است. کد دیگری انتخاب کنید.', 'error');
+          return;
+        }
+
+        const newStudent = {
+          id: uid('stu'),
+          name,
+          code,
+          goal,
+          phone: '',
+        };
+        STATE.students.push(newStudent);
+        STATE.programs[newStudent.id] = [];
+        STATE.ui.coachSelectedStudentId = newStudent.id;
+        STATE.session = {
+          role: 'student',
+          userId: newStudent.id,
+          name: newStudent.name,
+        };
+        STATE.currentRoute = 'panel';
+        saveState();
+        this.closeModal();
+        this.showToast(`ثبت‌نام ${name} با کد ${this.toFaDigits(code)} انجام شد!`, 'success');
+        this.renderAll();
+      },
+
+      closeModal() {
+        if (this.animCleanup) {
+          this.animCleanup();
+          this.animCleanup = null;
+        }
+        const root = document.getElementById('modalRoot');
+        if (root) {
+          root.innerHTML = '';
+          root.classList.add('hidden');
+          root.classList.remove('flex');
+          root.onclick = null;
+        }
+      },
+
+      // ---------------------------------------------------------------------
+      // HEADER, DRAWER & CHROME RENDERING
+      // ---------------------------------------------------------------------
+      renderChrome() {
+        const drawerStatus = document.getElementById('drawerUserStatus');
+        const authArea = document.getElementById('headerAuthArea');
+        const drawerFooter = document.getElementById('drawerFooter');
+
+        const role = STATE.session.role;
+        const roleLabel = role === 'coach' ? 'مربی' : role === 'student' ? 'شاگرد' : 'مهمان';
+
+        if (drawerStatus) {
+          drawerStatus.textContent = role === 'guest'
+            ? 'حالت مهمان (ورود برای پنل و تیکت)'
+            : `${STATE.session.name} (${roleLabel})`;
+        }
+
+        const themeIcon = STATE.theme === 'dark'
+          ? '<svg class="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z"/></svg>'
+          : '<svg class="w-4 h-4 text-slate-600" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"/></svg>';
+
+        if (authArea) {
+          if (role === 'guest') {
+            authArea.innerHTML = `
+              <button type="button" onclick="UI.toggleTheme()" aria-label="تغییر پوسته" class="p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition">
+                ${themeIcon}
+              </button>
+              <button type="button" onclick="UI.openAuthModal('login')" class="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs sm:text-sm font-bold shadow-md shadow-brand-600/20 transition flex items-center gap-1.5">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                </svg>
+                <span>ورود</span>
+              </button>
+            `;
+          } else {
+            authArea.innerHTML = `
+              <button type="button" onclick="UI.toggleTheme()" aria-label="تغییر پوسته" class="p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition">
+                ${themeIcon}
+              </button>
+              <button type="button" onclick="UI.navigate('panel')" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-200">
+                <span>${UI.escapeHtml(STATE.session.name)}</span>
+                <span class="text-brand-600 dark:text-brand-400">(${roleLabel})</span>
+              </button>
+              <button type="button" onclick="UI.logout()" class="px-3 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/50 dark:hover:bg-rose-900/50 text-rose-600 dark:text-rose-400 text-xs font-bold transition">
+                خروج
+              </button>
+            `;
+          }
+        }
+
+        if (drawerFooter) {
+          if (role === 'guest') {
+            drawerFooter.innerHTML = `
+              <div class="grid grid-cols-2 gap-2">
+                <button type="button" onclick="UI.toggleDrawer(false); UI.openAuthModal('login')" class="py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold transition">
+                  ورود به حساب
+                </button>
+                <button type="button" onclick="UI.toggleDrawer(false); UI.openAuthModal('register')" class="py-2 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-bold transition">
+                  ثبت‌نام
+                </button>
+              </div>
+            `;
+          } else {
+            drawerFooter.innerHTML = `
+              <button type="button" onclick="UI.toggleDrawer(false); UI.logout()" class="w-full py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition">
+                خروج از حساب (${UI.escapeHtml(STATE.session.name)})
+              </button>
+            `;
+          }
+        }
+      },
+
+      // ---------------------------------------------------------------------
+      // ROUTE 1: HOME (BODYBUILDING SCIENCE, MOTIVATION & INTERACTIVE CALCULATOR)
+      // ---------------------------------------------------------------------
+      renderHome() {
+        const cp = STATE.coachProfile;
+        return `
+          <div class="space-y-8">
+            <!-- Hero Banner -->
+            <section class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-900 to-brand-950 text-white p-6 sm:p-10 shadow-xl border border-slate-800">
+              <div class="max-w-3xl space-y-4 relative z-10">
+                <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-500/20 border border-brand-400/30 text-brand-300 text-xs font-bold">
+                  علم تمرین، هایپرتروفی و فیزیک اصولی
+                </span>
+                <h1 class="text-2xl sm:text-4xl lg:text-5xl font-black leading-tight">
+                  بدن عضلانی ماندگار با <span class="text-brand-400">برنامه علمی</span> ساخته می‌شود، نه شانس!
+                </h1>
+                <p class="text-sm sm:text-base text-slate-300 leading-relaxed">
+                  در آکادمی <strong>${UI.escapeHtml(cp.name)}</strong>، هر برنامه تمرینی با در نظر گرفتن مکانیک بدن، فشار مکانیکی هدفمند، ریکاوری و تغذیه متناسب با هدف شما نوشته می‌شود. پس از ورود، برنامه اختصاصی خود را همراه با انیمیشن عضله‌نما مشاهده کنید.
+                </p>
+                <div class="flex flex-wrap items-center gap-3 pt-2">
+                  ${STATE.session.role === 'guest' ? `
+                    <button type="button" onclick="UI.openAuthModal('login')" class="px-5 py-3 rounded-2xl bg-brand-600 hover:bg-brand-500 text-white text-sm font-extrabold shadow-lg shadow-brand-600/30 transition">
+                      ورود به پنل (مربی / شاگرد)
+                    </button>
+                    <button type="button" onclick="UI.openAuthModal('register')" class="px-5 py-3 rounded-2xl bg-white/10 hover:bg-white/15 text-white text-sm font-bold border border-white/15 transition">
+                      ثبت‌نام شاگرد جدید
+                    </button>
+                  ` : `
+                    <button type="button" onclick="UI.navigate('panel')" class="px-5 py-3 rounded-2xl bg-brand-600 hover:bg-brand-500 text-white text-sm font-extrabold shadow-lg shadow-brand-600/30 transition">
+                      ورود به پنل اختصاصی من
+                    </button>
+                  `}
+                  <button type="button" onclick="UI.navigate('about')" class="px-5 py-3 rounded-2xl bg-transparent hover:bg-white/10 text-slate-200 text-sm font-bold border border-white/15 transition">
+                    آشنایی با استاد
+                  </button>
+                </div>
+              </div>
+            </section>
+
+            <!-- 4 Pillars of Bodybuilding Science -->
+            <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-2">
+                <div class="w-10 h-10 rounded-xl bg-brand-100 dark:bg-brand-900/50 text-brand-600 dark:text-brand-400 flex items-center justify-center font-black">۰۱</div>
+                <h2 class="font-extrabold text-base">اضافه‌بار تدریجی (Progressive Overload)</h2>
+                <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                  عضله تنها زمانی رشد می‌کند که در طول زمان با چالش بیشتری نسبت به گذشته روبه‌رو شود؛ چه با افزایش وزنه و چه با بهبود کیفیت و کنترل تکرارها.
+                </p>
+              </div>
+              <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-2">
+                <div class="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-black">۰۲</div>
+                <h2 class="font-extrabold text-base">تکنیک و اتصال ذهن به عضله</h2>
+                <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                  انقباض آگاهانه و اجرای دقیق زاویه مفاصل باعث می‌شود فشار مستقیماً به تارهای عضلانی هدف منتقل شود و ریسک آسیب‌دیدگی به حداقل برسد.
+                </p>
+              </div>
+              <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-2">
+                <div class="w-10 h-10 rounded-xl bg-sky-100 dark:bg-sky-900/50 text-sky-600 dark:text-sky-400 flex items-center justify-center font-black">۰۳</div>
+                <h2 class="font-extrabold text-base">ریکاوری و خواب باکیفیت</h2>
+                <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                  رشد عضلات در باشگاه اتفاق نمی‌افتد؛ در زمان استراحت و خواب عمیق بین جلسات است که بازسازی فیبرهای عضلانی انجام می‌شود.
+                </p>
+              </div>
+              <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-2">
+                <div class="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400 flex items-center justify-center font-black">۰۴</div>
+                <h2 class="font-extrabold text-base">تغذیه هوشمند و پروتئین کافی</h2>
+                <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                  تامین انرژی و پروتئین روزانه متناسب با وزن و سطح فعالیت، سوخت لازم برای ساخت بافت عضلانی جدید یا چربی‌سوزی اصولی را فراهم می‌کند.
+                </p>
+              </div>
+            </section>
+
+            <!-- Interactive BMI & Daily Calorie/Protein Calculator -->
+            <section class="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-200/80 dark:border-slate-800 shadow-xs">
+              <div class="flex flex-col lg:flex-row gap-8 items-start">
+                <div class="w-full lg:w-1/2 space-y-4">
+                  <div>
+                    <span class="text-xs font-bold text-brand-600 dark:text-brand-400">ابزار کاربردی ورزشکاران</span>
+                    <h2 class="text-xl sm:text-2xl font-extrabold mt-1">محاسبه‌گر شاخص BMI و نیاز کالری روزانه</h2>
+                    <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
+                      اطلاعات بدنی خود را وارد کنید تا برآورد سریع شاخص توده بدنی و کالری پیشنهادی نمایش داده شود.
+                    </p>
+                  </div>
+
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label class="block text-xs font-bold mb-1">وزن (کیلوگرم)</label>
+                      <input type="number" id="calcWeight" value="78" min="35" max="250" oninput="UI.updateFitnessCalc()" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm" />
+                    </div>
+                    <div>
+                      <label class="block text-xs font-bold mb-1">قد (سانتی‌متر)</label>
+                      <input type="number" id="calcHeight" value="178" min="120" max="230" oninput="UI.updateFitnessCalc()" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm" />
+                    </div>
+                    <div>
+                      <label class="block text-xs font-bold mb-1">سن (سال)</label>
+                      <input type="number" id="calcAge" value="26" min="12" max="90" oninput="UI.updateFitnessCalc()" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm" />
+                    </div>
+                    <div>
+                      <label class="block text-xs font-bold mb-1">هدف اصلی</label>
+                      <select id="calcGoal" onchange="UI.updateFitnessCalc()" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm">
+                        <option value="bulk">افزایش حجم عضلانی (+۳۵۰ کالری)</option>
+                        <option value="maintain" selected>حفظ وزن و فرم‌دهی (تعادلی)</option>
+                        <option value="cut">کاهش چربی و کات (-۴۰۰ کالری)</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <div id="fitnessCalcResult" class="w-full lg:w-1/2 grid grid-cols-1 sm:grid-cols-3 gap-3.5"></div>
+              </div>
+            </section>
+          </div>
+        `;
+      },
+
+      updateFitnessCalc() {
+        const resBox = document.getElementById('fitnessCalcResult');
+        if (!resBox) return;
+
+        const w = Math.max(35, Number(document.getElementById('calcWeight')?.value || 78));
+        const h = Math.max(120, Number(document.getElementById('calcHeight')?.value || 178));
+        const age = Math.max(12, Number(document.getElementById('calcAge')?.value || 26));
+        const goal = document.getElementById('calcGoal')?.value || 'maintain';
+
+        const hm = h / 100;
+        const bmi = w / (hm * hm);
+        let bmiStatus = 'نرمال';
+        let bmiBadgeClass = 'text-emerald-600 dark:text-emerald-400';
+        if (bmi < 18.5) {
+          bmiStatus = 'کم‌وزن';
+          bmiBadgeClass = 'text-sky-600 dark:text-sky-400';
+        } else if (bmi >= 25 && bmi < 30) {
+          bmiStatus = 'اضافه‌وزن';
+          bmiBadgeClass = 'text-amber-600 dark:text-amber-400';
+        } else if (bmi >= 30) {
+          bmiStatus = 'چاقی';
+          bmiBadgeClass = 'text-rose-600 dark:text-rose-400';
+        }
+
+        // Moderate training baseline estimate
+        const bmr = 10 * w + 6.25 * h - 5 * age + 5;
+        let targetKcal = Math.round(bmr * 1.55);
+        if (goal === 'bulk') targetKcal += 350;
+        if (goal === 'cut') targetKcal -= 400;
+
+        const proteinGrams = Math.round(w * (goal === 'cut' ? 2.0 : 1.8));
+
+        resBox.innerHTML = `
+          <div class="rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700 p-4 flex flex-col justify-between">
+            <div class="text-xs font-bold text-slate-500 dark:text-slate-400">شاخص BMI</div>
+            <div class="text-2xl font-black my-1">${this.toFaDigits(bmi.toFixed(1))}</div>
+            <div class="text-xs font-bold ${bmiBadgeClass}">${bmiStatus}</div>
+          </div>
+          <div class="rounded-2xl bg-brand-50 dark:bg-brand-950/40 border border-brand-200/80 dark:border-brand-800/60 p-4 flex flex-col justify-between">
+            <div class="text-xs font-bold text-brand-700 dark:text-brand-300">کالری پیشنهادی روزانه</div>
+            <div class="text-2xl font-black text-brand-600 dark:text-brand-400 my-1">${this.toFaDigits(targetKcal)}</div>
+            <div class="text-xs text-slate-600 dark:text-slate-400">کیلوکالری در روز</div>
+          </div>
+          <div class="rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700 p-4 flex flex-col justify-between">
+            <div class="text-xs font-bold text-slate-500 dark:text-slate-400">پروتئین تقریبی</div>
+            <div class="text-2xl font-black my-1">${this.toFaDigits(proteinGrams)}g</div>
+            <div class="text-xs text-slate-600 dark:text-slate-400">گرم در روز</div>
+          </div>
+        `;
+      },
+
+      // ---------------------------------------------------------------------
+      // ROUTE 2: ABOUT COACH (FULL-BODY PHOTO SLOT + COACH BIO + EDITOR)
+      // ---------------------------------------------------------------------
+      renderAbout() {
+        const cp = STATE.coachProfile;
+        const isCoach = STATE.session.role === 'coach';
+
+        const defaultFullBodySvg = `
+          <svg viewBox="0 0 300 440" class="w-full h-full object-cover" role="img" aria-label="تصویر قدی استاد">
+            <defs>
+              <linearGradient id="coachBgGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#1e293b"/>
+                <stop offset="100%" stop-color="#0f172a"/>
+              </linearGradient>
+              <linearGradient id="coachPhysiqueGrad" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#f97316"/>
+                <stop offset="100%" stop-color="#9a3412"/>
+              </linearGradient>
+            </defs>
+            <rect width="300" height="440" fill="url(#coachBgGrad)"/>
+            <circle cx="150" cy="78" r="26" fill="#e2e8f0"/>
+            <path d="M126 68 Q150 42 174 68 Z" fill="#334155"/>
+            <path d="M136 104 L164 104 L172 124 L128 124 Z" fill="#cbd5e1"/>
+            <!-- Athletic V-taper torso -->
+            <path d="M92 126 Q150 116 208 126 L184 246 L116 246 Z" fill="url(#coachPhysiqueGrad)" opacity="0.92"/>
+            <!-- Arms -->
+            <path d="M92 128 L66 196 L78 242" fill="none" stroke="#e2e8f0" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M208 128 L234 196 L222 242" fill="none" stroke="#e2e8f0" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+            <!-- Shorts -->
+            <path d="M116 246 L184 246 L190 286 L154 282 L150 268 L146 282 L110 286 Z" fill="#1e293b"/>
+            <!-- Legs -->
+            <path d="M128 286 L122 356 L120 416" fill="none" stroke="#cbd5e1" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M172 286 L178 356 L180 416" fill="none" stroke="#cbd5e1" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+            <text x="150" y="432" text-anchor="middle" fill="#94a3b8" font-size="11" font-family="Vazirmatn, sans-serif">قاب عکس قدی استاد (قابل آپلود)</text>
+          </svg>
+        `;
+
+        return `
+          <div class="space-y-8">
+            <section class="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-200/80 dark:border-slate-800 shadow-xs">
+              <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                <!-- Full-Body Coach Photo Column -->
+                <div class="lg:col-span-5 space-y-3">
+                  <div class="aspect-[3/4] w-full max-w-sm mx-auto rounded-3xl overflow-hidden border-2 border-brand-500/30 shadow-xl bg-slate-900 relative">
+                    ${cp.fullBodyPhoto
+                      ? `<img src="${cp.fullBodyPhoto}" alt="عکس قدی ${UI.escapeHtml(cp.name)}" class="w-full h-full object-cover object-top" />`
+                      : defaultFullBodySvg
+                    }
+                  </div>
+
+                  ${isCoach ? `
+                    <div class="max-w-sm mx-auto flex flex-wrap gap-2 justify-center pt-1">
+                      <label class="cursor-pointer px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold transition">
+                        <span>آپلود / تغییر عکس قدی استاد</span>
+                        <input type="file" accept="image/*" onchange="UI.handleCoachPhotoUpload(event)" class="hidden" />
+                      </label>
+                      ${cp.fullBodyPhoto ? `
+                        <button type="button" onclick="UI.removeCoachPhoto()" class="px-3 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 text-xs font-bold transition">
+                          حذف عکس
+                        </button>
+                      ` : ''}
+                    </div>
+                  ` : ''}
+                </div>
+
+                <!-- Coach Bio & Credentials Column -->
+                <div class="lg:col-span-7 space-y-5">
+                  <div>
+                    <span class="inline-block text-xs font-extrabold px-3 py-1 rounded-full bg-brand-100 text-brand-700 dark:bg-brand-900/50 dark:text-brand-300 mb-2">
+                      درباره ما و معرفی استاد
+                    </span>
+                    <h1 class="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">
+                      ${UI.escapeHtml(cp.name)}
+                    </h1>
+                    <p class="text-sm font-semibold text-brand-600 dark:text-brand-400 mt-1">
+                      ${UI.escapeHtml(cp.title)}
+                    </p>
+                  </div>
+
+                  <p class="text-sm sm:text-base text-slate-600 dark:text-slate-300 leading-relaxed">
+                    ${UI.escapeHtml(cp.bio)}
+                  </p>
+
+                  <!-- Coach Stats -->
+                  <div class="grid grid-cols-3 gap-3 pt-1">
+                    <div class="rounded-2xl bg-slate-50 dark:bg-slate-800/80 p-4 border border-slate-200/70 dark:border-slate-700 text-center">
+                      <div class="text-xl sm:text-2xl font-black text-brand-600 dark:text-brand-400">${UI.toFaDigits(cp.stats.experienceYears)}</div>
+                      <div class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">سال سابقه مربیگری</div>
+                    </div>
+                    <div class="rounded-2xl bg-slate-50 dark:bg-slate-800/80 p-4 border border-slate-200/70 dark:border-slate-700 text-center">
+                      <div class="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400">${UI.toFaDigits(cp.stats.activeStudents)}</div>
+                      <div class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">شاگرد فعال و موفق</div>
+                    </div>
+                    <div class="rounded-2xl bg-slate-50 dark:bg-slate-800/80 p-4 border border-slate-200/70 dark:border-slate-700 text-center">
+                      <div class="text-xl sm:text-2xl font-black text-sky-600 dark:text-sky-400">${UI.toFaDigits(cp.stats.programsDesigned)}</div>
+                      <div class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">برنامه تخصصی</div>
+                    </div>
+                  </div>
+
+                  <!-- Credentials List -->
+                  <div class="space-y-2 pt-2">
+                    <h2 class="text-sm font-extrabold text-slate-800 dark:text-slate-200">سوابق، مدارک و رویکرد تخصصی:</h2>
+                    <ul class="space-y-2">
+                      ${(cp.credentials || []).map(item => `
+                        <li class="flex items-start gap-2.5 text-xs sm:text-sm text-slate-600 dark:text-slate-300">
+                          <span class="w-5 h-5 rounded-full bg-brand-100 dark:bg-brand-900/50 text-brand-600 dark:text-brand-400 flex items-center justify-center shrink-0 mt-0.5 font-bold">✓</span>
+                          <span>${UI.escapeHtml(item)}</span>
+                        </li>
+                      `).join('')}
+                    </ul>
+                  </div>
+
+                  <!-- Coach Inline Profile Editor -->
+                  ${isCoach ? `
+                    <form onsubmit="UI.saveCoachProfile(event)" class="mt-6 pt-6 border-t border-slate-200 dark:border-slate-800 space-y-3">
+                      <div class="text-sm font-extrabold text-brand-600 dark:text-brand-400">ویرایش اطلاعات صفحه درباره ما</div>
+                      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label class="block text-xs font-bold mb-1">نام استاد</label>
+                          <input type="text" id="editCoachName" value="${UI.escapeHtml(cp.name)}" required class="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm" />
+                        </div>
+                        <div>
+                          <label class="block text-xs font-bold mb-1">عنوان تخصصی</label>
+                          <input type="text" id="editCoachTitle" value="${UI.escapeHtml(cp.title)}" required class="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm" />
+                        </div>
+                      </div>
+                      <div>
+                        <label class="block text-xs font-bold mb-1">بیوگرافی و توضیحات استاد</label>
+                        <textarea id="editCoachBio" rows="3" required class="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm">${UI.escapeHtml(cp.bio)}</textarea>
+                      </div>
+                      <button type="submit" class="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs sm:text-sm font-bold transition">
+                        ذخیره تغییرات معرفی استاد
+                      </button>
+                    </form>
+                  ` : ''}
+                </div>
+              </div>
+            </section>
+          </div>
+        `;
+      },
+
+      handleCoachPhotoUpload(e) {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          STATE.coachProfile.fullBodyPhoto = String(reader.result || '');
+          saveState();
+          this.showToast('عکس قدی استاد با موفقیت ذخیره شد.', 'success');
+          this.renderMainView();
+        };
+        reader.readAsDataURL(file);
+      },
+
+      removeCoachPhoto() {
+        STATE.coachProfile.fullBodyPhoto = '';
+        saveState();
+        this.showToast('عکس قدی استاد حذف شد.');
+        this.renderMainView();
+      },
+
+      saveCoachProfile(e) {
+        e.preventDefault();
+        const name = (document.getElementById('editCoachName')?.value || '').trim();
+        const title = (document.getElementById('editCoachTitle')?.value || '').trim();
+        const bio = (document.getElementById('editCoachBio')?.value || '').trim();
+        if (!name || !title || !bio) return;
+
+        STATE.coachProfile.name = name;
+        STATE.coachProfile.title = title;
+        STATE.coachProfile.bio = bio;
+        if (STATE.session.role === 'coach') {
+          STATE.session.name = name;
+        }
+        saveState();
+        this.showToast('اطلاعات استاد به‌روزرسانی شد.', 'success');
+        this.renderAll();
+      },
+
+      // ---------------------------------------------------------------------
+      // ROUTE 3: CONTACT & TICKETING (LOCKED FOR GUESTS, OPEN WHEN LOGGED IN)
+      // ---------------------------------------------------------------------
+      renderContact() {
+        const isLoggedIn = STATE.session.role === 'coach' || STATE.session.role === 'student';
+        const isCoach = STATE.session.role === 'coach';
+
+        const visibleTickets = isCoach
+          ? STATE.tickets
+          : isLoggedIn
+          ? STATE.tickets.filter(t => t.authorId === STATE.session.userId)
+          : [];
+
+        return `
+          <div class="space-y-8">
+            <section class="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-6">
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">
+                <div>
+                  <span class="inline-block text-xs font-extrabold px-3 py-1 rounded-full bg-sky-100 text-sky-700 dark:bg-sky-900/50 dark:text-sky-300 mb-2">
+                    پشتیبانی و ارتباط مستقیم با مربی
+                  </span>
+                  <h1 class="text-2xl sm:text-3xl font-black">ارتباط با ما و سیستم تیکتینگ</h1>
+                  <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
+                    ارسال تیکت و مشاهده پاسخ‌ها تنها برای کاربران واردشده یا ثبت‌نام‌شده در سایت فعال است.
+                  </p>
+                </div>
+                <div class="text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/80 px-4 py-3 rounded-2xl border border-slate-200/70 dark:border-slate-700 space-y-1">
+                  <div><strong class="text-slate-700 dark:text-slate-200">استاد:</strong> ${UI.escapeHtml(STATE.coachProfile.name)}</div>
+                  <div><strong class="text-slate-700 dark:text-slate-200">پاسخگویی:</strong> روزانه در پنل تیکت‌ها</div>
+                </div>
+              </div>
+
+              ${!isLoggedIn ? `
+                <!-- Locked State for Guests -->
+                <div class="rounded-3xl bg-slate-50 dark:bg-slate-800/70 border-2 border-dashed border-slate-300 dark:border-slate-700 p-8 text-center space-y-4">
+                  <div class="w-14 h-14 mx-auto rounded-2xl bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                    <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                  </div>
+                  <div class="space-y-1.5 max-w-md mx-auto">
+                    <h2 class="text-lg font-extrabold text-slate-900 dark:text-white">
+                      ارسال تیکت برای کاربران مهمان بسته است
+                    </h2>
+                    <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                      برای ثبت تیکت، پرسش درباره برنامه تمرینی یا پیگیری پاسخ مربی، ابتدا وارد حساب کاربری خود شوید یا ثبت‌نام کنید.
+                    </p>
+                  </div>
+                  <div class="flex flex-wrap items-center justify-center gap-3 pt-1">
+                    <button type="button" onclick="UI.openAuthModal('login')" class="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-sm font-bold shadow-md transition">
+                      ورود به حساب کاربری
+                    </button>
+                    <button type="button" onclick="UI.openAuthModal('register')" class="px-5 py-2.5 rounded-xl bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-bold transition">
+                      ثبت‌نام در سایت
+                    </button>
+                  </div>
+                </div>
+              ` : `
+                <!-- Authenticated Ticket Form & List -->
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-7 items-start">
+                  <form onsubmit="UI.handleTicketCreate(event)" class="lg:col-span-5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-700 space-y-3.5">
+                    <h2 class="text-base font-extrabold">ثبت تیکت جدید</h2>
+                    <div class="text-xs text-slate-500 dark:text-slate-400">
+                      ارسال‌کننده: <strong class="text-slate-800 dark:text-slate-200">${UI.escapeHtml(STATE.session.name)}</strong>
+                    </div>
+                    <div>
+                      <label class="block text-xs font-bold mb-1">موضوع تیکت</label>
+                      <input type="text" id="ticketSubject" required placeholder="مثال: تنظیم برنامه یا پرسش تغذیه‌ای" class="w-full px-3.5 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-sm focus:outline-none focus:border-brand-500" />
+                    </div>
+                    <div>
+                      <label class="block text-xs font-bold mb-1">متن پیام / تیکت</label>
+                      <textarea id="ticketMessage" rows="4" required placeholder="توضیحات خود را بنویسید..." class="w-full px-3.5 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-sm focus:outline-none focus:border-brand-500"></textarea>
+                    </div>
+                    <button type="submit" class="w-full py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-sm font-bold shadow-md transition">
+                      ارسال تیکت
+                    </button>
+                  </form>
+
+                  <div class="lg:col-span-7 space-y-3.5">
+                    <h2 class="text-base font-extrabold">
+                      ${isCoach ? `همه تیکت‌های ثبت‌شده (${UI.toFaDigits(visibleTickets.length)})` : `تیکت‌های من (${UI.toFaDigits(visibleTickets.length)})`}
+                    </h2>
+
+                    ${visibleTickets.length === 0 ? `
+                      <div class="rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-800 p-6 text-center text-xs sm:text-sm text-slate-500">
+                        هنوز تیکتی ثبت نشده است.
+                      </div>
+                    ` : visibleTickets.map(tkt => `
+                      <div class="rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700 p-4 space-y-3">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                          <div class="font-extrabold text-sm text-slate-900 dark:text-white">${UI.escapeHtml(tkt.subject)}</div>
+                          <span class="text-[11px] text-slate-500">${UI.toFaDigits(tkt.createdAt)}</span>
+                        </div>
+                        <div class="text-xs text-brand-600 dark:text-brand-400 font-semibold">
+                          ارسال‌کننده: ${UI.escapeHtml(tkt.authorName)}
+                        </div>
+                        <p class="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+                          ${UI.escapeHtml(tkt.message)}
+                        </p>
+
+                        ${(tkt.replies && tkt.replies.length > 0) ? `
+                          <div class="space-y-2 pt-2 border-t border-slate-200/80 dark:border-slate-700">
+                            ${tkt.replies.map(rep => `
+                              <div class="rounded-xl bg-white dark:bg-slate-900 p-3 border border-emerald-200/60 dark:border-emerald-900/40">
+                                <div class="flex items-center justify-between text-[11px] font-bold text-emerald-600 dark:text-emerald-400 mb-1">
+                                  <span>${UI.escapeHtml(rep.sender)}</span>
+                                  <span>${UI.toFaDigits(rep.time)}</span>
+                                </div>
+                                <p class="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">${UI.escapeHtml(rep.text)}</p>
+                              </div>
+                            `).join('')}
+                          </div>
+                        ` : ''}
+
+                        ${isCoach ? `
+                          <form onsubmit="UI.handleTicketReply(event, '${tkt.id}')" class="flex gap-2 pt-1">
+                            <input type="text" id="reply_${tkt.id}" required placeholder="پاسخ مربی را بنویسید..." class="flex-1 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs" />
+                            <button type="submit" class="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition">
+                              ارسال پاسخ
+                            </button>
+                          </form>
+                        ` : ''}
+                      </div>
+                    `).join('')}
+                  </div>
+                </div>
+              `}
+            </section>
+          </div>
+        `;
+      },
+
+      handleTicketCreate(e) {
+        e.preventDefault();
+        if (STATE.session.role === 'guest') {
+          this.showToast('ابتدا وارد حساب کاربری شوید.', 'error');
+          return;
+        }
+        const subject = (document.getElementById('ticketSubject')?.value || '').trim();
+        const message = (document.getElementById('ticketMessage')?.value || '').trim();
+        if (!subject || !message) return;
+
+        const nowStr = new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' });
+        STATE.tickets.unshift({
+          id: uid('tkt'),
+          authorRole: STATE.session.role,
+          authorId: STATE.session.userId,
+          authorName: STATE.session.name,
+          subject,
+          message,
+          createdAt: `امروز - ${nowStr}`,
+          replies: [],
+        });
+        saveState();
+        this.showToast('تیکت شما با موفقیت ثبت شد.', 'success');
+        this.renderMainView();
+      },
+
+      handleTicketReply(e, ticketId) {
+        e.preventDefault();
+        if (STATE.session.role !== 'coach') return;
+        const inp = document.getElementById('reply_' + ticketId);
+        const text = (inp?.value || '').trim();
+        if (!text) return;
+
+        const tkt = STATE.tickets.find(t => t.id === ticketId);
+        if (!tkt) return;
+        tkt.replies = tkt.replies || [];
+        const nowStr = new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' });
+        tkt.replies.push({
+          sender: `${STATE.coachProfile.name} (مربی)`,
+          text,
+          time: `امروز - ${nowStr}`,
+        });
+        saveState();
+        this.showToast('پاسخ تیکت ثبت شد.', 'success');
+        this.renderMainView();
+      },
+
+      // ---------------------------------------------------------------------
+      // ROUTE 4: USER PANEL (COACH ACCORDION BUILDER OR ASSIGNED STUDENT VIEW)
+      // ---------------------------------------------------------------------
+      renderPanel() {
+        if (STATE.session.role === 'guest') {
+          return `
+            <div class="bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-200/80 dark:border-slate-800 text-center space-y-4 max-w-xl mx-auto my-6">
+              <h1 class="text-xl sm:text-2xl font-extrabold">دسترسی به پنل نیازمند ورود است</h1>
+              <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                لطفاً وارد شوید تا سیستم نقش شما را به عنوان <strong>مربی</strong> یا <strong>شاگرد</strong> تشخیص دهد و پنل مربوطه باز شود.
+              </p>
+              <button type="button" onclick="UI.openAuthModal('login')" class="px-6 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-sm font-bold shadow-md transition">
+                ورود به حساب کاربری
+              </button>
+            </div>
+          `;
+        }
+
+        if (STATE.session.role === 'coach') {
+          return this.renderCoachPanel();
+        }
+        return this.renderStudentPanel();
+      },
+
+      // ---------------------------------------------------------------------
+      // COACH PANEL (COLLAPSIBLE ACCORDION DAYS & EXERCISES + 63-EX PICKER)
+      // ---------------------------------------------------------------------
+      renderCoachPanel() {
+        const students = STATE.students;
+        let selectedStudent = students.find(s => s.id === STATE.ui.coachSelectedStudentId) || students[0] || null;
+        if (selectedStudent) {
+          STATE.ui.coachSelectedStudentId = selectedStudent.id;
+        }
+
+        const days = selectedStudent ? (STATE.programs[selectedStudent.id] || []) : [];
+
+        return `
+          <div class="space-y-6">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-200/80 dark:border-slate-800">
+              <div>
+                <span class="text-xs font-extrabold text-brand-600 dark:text-brand-400">پنل مدیریت مربی</span>
+                <h1 class="text-xl sm:text-2xl font-black mt-0.5">برنامه‌ریزی شاگردان و انتخاب حرکت از کتابخانه (${this.toFaDigits(EXERCISES.length)} حرکت)</h1>
+              </div>
+              <div class="text-xs text-slate-500 dark:text-slate-400">
+                روزها و تمرین‌ها کشویی هستند؛ برای ویرایش جزئیات هر بخش روی آن کلیک کنید.
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+              <!-- Students Sidebar -->
+              <aside class="lg:col-span-4 bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200/80 dark:border-slate-800 space-y-4">
+                <div class="flex items-center justify-between">
+                  <h2 class="font-extrabold text-base">لیست شاگردان (${this.toFaDigits(students.length)})</h2>
+                </div>
+
+                <div class="space-y-2 max-h-80 overflow-y-auto pr-1">
+                  ${students.map(st => {
+                    const active = selectedStudent && st.id === selectedStudent.id;
+                    const stDaysCount = (STATE.programs[st.id] || []).length;
+                    return `
+                      <button
+                        type="button"
+                        onclick="UI.selectCoachStudent('${st.id}')"
+                        class="w-full text-right p-3 rounded-2xl border transition flex items-center justify-between gap-2 ${
+                          active
+                            ? 'bg-brand-50 dark:bg-brand-950/50 border-brand-500 text-slate-900 dark:text-white'
+                            : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200/70 dark:border-slate-700/70 hover:border-brand-300'
+                        }"
+                      >
+                        <div class="min-w-0">
+                          <div class="font-bold text-sm truncate">${UI.escapeHtml(st.name)}</div>
+                          <div class="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                            کد ورود: <span class="font-bold text-brand-600 dark:text-brand-400">${UI.toFaDigits(st.code)}</span> · ${UI.escapeHtml(st.goal || '')}
+                          </div>
+                        </div>
+                        <span class="text-[11px] px-2 py-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shrink-0 font-semibold">
+                          ${this.toFaDigits(stDaysCount)} روز
+                        </span>
+                      </button>
+                    `;
+                  }).join('')}
+                </div>
+
+                <!-- Add New Student Form -->
+                <form onsubmit="UI.handleAddStudent(event)" class="pt-3 border-t border-slate-200 dark:border-slate-800 space-y-2.5">
+                  <div class="text-xs font-extrabold text-slate-700 dark:text-slate-300">افزودن شاگرد جدید</div>
+                  <input type="text" id="newStuName" required placeholder="نام و نام خانوادگی شاگرد" class="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm" />
+                  <div class="grid grid-cols-2 gap-2">
+                    <input type="text" id="newStuCode" required placeholder="کد ورود (مثل 1004)" class="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm" />
+                    <input type="text" id="newStuGoal" placeholder="هدف (اختیاری)" class="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm" />
+                  </div>
+                  <button type="submit" class="w-full py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs sm:text-sm font-bold transition">
+                    + ثبت شاگرد
+                  </button>
+                </form>
+              </aside>
+
+              <!-- Program Builder Main Area (Accordion Days & Exercises) -->
+              <section class="lg:col-span-8 bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-6 border border-slate-200/80 dark:border-slate-800 space-y-5">
+                ${!selectedStudent ? `
+                  <div class="text-center py-10 text-sm text-slate-500">ابتدا یک شاگرد اضافه کنید.</div>
+                ` : `
+                  <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-4">
+                    <div>
+                      <h2 class="text-lg sm:text-xl font-black">
+                        برنامه تمرینی ${UI.escapeHtml(selectedStudent.name)}
+                      </h2>
+                      <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                        کد ورود شاگرد: <strong>${UI.toFaDigits(selectedStudent.code)}</strong> · تعداد روزها: <strong>${this.toFaDigits(days.length)}</strong>
+                      </p>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2">
+                      ${days.length > 0 ? `
+                        <button type="button" onclick="UI.setAllDaysExpanded(true)" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-bold transition">
+                          باز کردن همه روزها
+                        </button>
+                        <button type="button" onclick="UI.setAllDaysExpanded(false)" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-bold transition">
+                          بستن همه روزها
+                        </button>
+                      ` : ''}
+                      <button type="button" onclick="UI.addProgramDay()" class="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs sm:text-sm font-bold shadow-sm transition">
+                        + افزودن روز جدید
+                      </button>
+                      <button type="button" onclick="UI.deleteStudent('${selectedStudent.id}')" class="px-3 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 text-xs font-bold transition">
+                        حذف شاگرد
+                      </button>
+                    </div>
+                  </div>
+
+                  ${days.length === 0 ? `
+                    <div class="rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-dashed border-slate-300 dark:border-slate-700 p-8 text-center space-y-3">
+                      <p class="text-sm text-slate-600 dark:text-slate-300 font-semibold">
+                        هنوز روزی برای برنامه این شاگرد تعریف نشده است.
+                      </p>
+                      <button type="button" onclick="UI.addProgramDay()" class="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold transition">
+                        افزودن اولین روز تمرینی
+                      </button>
+                    </div>
+                  ` : `
+                    <div class="space-y-4">
+                      ${days.map((day, dIdx) => {
+                        const isDayOpen = Boolean(STATE.ui.coachExpandedDays[day.id]);
+                        return `
+                          <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 overflow-hidden">
+                            <!-- Accordion Day Header -->
+                            <div class="flex items-center justify-between gap-2 p-3.5 sm:p-4 bg-white dark:bg-slate-900 border-b ${isDayOpen ? 'border-slate-200 dark:border-slate-800' : 'border-transparent'}">
+                              <button
+                                type="button"
+                                onclick="UI.toggleCoachDay('${day.id}')"
+                                class="flex items-center gap-2.5 text-right flex-1 min-w-0 group"
+                              >
+                                <span class="w-7 h-7 rounded-lg bg-brand-100 dark:bg-brand-900/50 text-brand-600 dark:text-brand-400 flex items-center justify-center text-xs font-black shrink-0">
+                                  ${this.toFaDigits(dIdx + 1)}
+                                </span>
+                                <span class="font-extrabold text-sm sm:text-base truncate group-hover:text-brand-600 transition">
+                                  ${UI.escapeHtml(day.title)}
+                                </span>
+                                <span class="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 shrink-0">
+                                  ${this.toFaDigits(day.items.length)} حرکت
+                                </span>
+                                <svg class="w-4 h-4 text-slate-400 mr-auto transition-transform duration-200 ${isDayOpen ? 'rotate-180' : ''}" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                                  <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                                </svg>
+                              </button>
+
+                              <button
+                                type="button"
+                                onclick="UI.deleteProgramDay('${day.id}')"
+                                aria-label="حذف روز"
+                                class="p-2 rounded-xl text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition"
+                              >
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                  <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                              </button>
+                            </div>
+
+                            <!-- Accordion Day Body -->
+                            ${isDayOpen ? `
+                              <div class="p-3.5 sm:p-4 space-y-3">
+                                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                  <input
+                                    type="text"
+                                    value="${UI.escapeHtml(day.title)}"
+                                    onchange="UI.updateDayTitle('${day.id}', this.value)"
+                                    placeholder="عنوان روز (مثلاً روز اول: سینه و پشت بازو)"
+                                    class="flex-1 px-3.5 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm font-bold"
+                                  />
+                                  <button
+                                    type="button"
+                                    onclick="UI.openExercisePicker('${day.id}')"
+                                    class="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold transition shrink-0"
+                                  >
+                                    + انتخاب حرکت از کتابخانه
+                                  </button>
+                                </div>
+
+                                ${day.items.length === 0 ? `
+                                  <div class="text-xs text-slate-500 dark:text-slate-400 text-center py-4 bg-white dark:bg-slate-900/60 rounded-xl border border-dashed border-slate-200 dark:border-slate-700">
+                                    هنوز حرکتی به این روز اضافه نشده است. روی «انتخاب حرکت از کتابخانه» کلیک کنید.
+                                  </div>
+                                ` : `
+                                  <div class="space-y-2.5">
+                                    ${day.items.map((item, iIdx) => {
+                                      const ex = EX_BY_ID[item.exId];
+                                      if (!ex) return '';
+                                      const isItemOpen = Boolean(STATE.ui.coachExpandedItems[item.id]);
+                                      return `
+                                        <div class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-700/90 overflow-hidden">
+                                          <!-- Accordion Exercise Header -->
+                                          <div class="flex items-center justify-between gap-2 px-3.5 py-2.5">
+                                            <button
+                                              type="button"
+                                              onclick="UI.toggleCoachItem('${item.id}')"
+                                              class="flex items-center gap-2 text-right flex-1 min-w-0"
+                                            >
+                                              <span class="text-xs font-black text-slate-400 w-5">${this.toFaDigits(iIdx + 1)}.</span>
+                                              <span class="font-bold text-xs sm:text-sm truncate">${UI.escapeHtml(ex.name)}</span>
+                                              <span class="text-[10px] px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 shrink-0">${UI.escapeHtml(ex.groupLabel)}</span>
+                                              <span class="hidden sm:inline text-[11px] text-brand-600 dark:text-brand-400 font-semibold shrink-0">
+                                                ${this.toFaDigits(item.sets)} ست × ${UI.toFaDigits(item.reps)}
+                                              </span>
+                                              <svg class="w-3.5 h-3.5 text-slate-400 mr-auto transition-transform ${isItemOpen ? 'rotate-180' : ''}" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                                              </svg>
+                                            </button>
+
+                                            <div class="flex items-center gap-1 shrink-0">
+                                              <button type="button" onclick="UI.openExerciseAnimation('${ex.id}', '${item.id}')" title="مشاهده انیمیشن" class="px-2.5 py-1 rounded-lg bg-brand-50 hover:bg-brand-100 dark:bg-brand-950/60 text-brand-600 dark:text-brand-400 text-[11px] font-bold transition">
+                                                انیمیشن
+                                              </button>
+                                              <button type="button" onclick="UI.moveExerciseItem('${day.id}', '${item.id}', -1)" aria-label="انتقال به بالا" class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 text-xs">↑</button>
+                                              <button type="button" onclick="UI.moveExerciseItem('${day.id}', '${item.id}', 1)" aria-label="انتقال به پایین" class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 text-xs">↓</button>
+                                              <button type="button" onclick="UI.deleteExerciseItem('${day.id}', '${item.id}')" aria-label="حذف تمرین" class="p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/50 text-rose-500 text-xs">✕</button>
+                                            </div>
+                                          </div>
+
+                                          <!-- Accordion Exercise Collapsible Fields -->
+                                          ${isItemOpen ? `
+                                            <div class="px-3.5 pb-3.5 pt-2.5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/30 grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                                              <div>
+                                                <label class="block text-[11px] font-bold text-slate-500 mb-1">تعداد ست</label>
+                                                <input type="number" min="1" max="20" value="${UI.escapeHtml(item.sets)}" onchange="UI.updateExerciseItem('${day.id}', '${item.id}', 'sets', this.value)" class="w-full px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs" />
+                                              </div>
+                                              <div>
+                                                <label class="block text-[11px] font-bold text-slate-500 mb-1">تکرار / دامنه</label>
+                                                <input type="text" value="${UI.escapeHtml(item.reps)}" onchange="UI.updateExerciseItem('${day.id}', '${item.id}', 'reps', this.value)" class="w-full px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs" />
+                                              </div>
+                                              <div>
+                                                <label class="block text-[11px] font-bold text-slate-500 mb-1">استراحت بین ست</label>
+                                                <input type="text" value="${UI.escapeHtml(item.rest)}" onchange="UI.updateExerciseItem('${day.id}', '${item.id}', 'rest', this.value)" class="w-full px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs" />
+                                              </div>
+                                              <div class="sm:col-span-3">
+                                                <label class="block text-[11px] font-bold text-slate-500 mb-1">توضیح و نکته اختصاصی مربی برای شاگرد</label>
+                                                <input type="text" value="${UI.escapeHtml(item.note)}" onchange="UI.updateExerciseItem('${day.id}', '${item.id}', 'note', this.value)" placeholder="نکته تکنیکی یا وزنه پیشنهادی..." class="w-full px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs" />
+                                              </div>
+                                            </div>
+                                          ` : ''}
+                                        </div>
+                                      `;
+                                    }).join('')}
+                                  </div>
+                                `}
+                              </div>
+                            ` : ''}
+                          </div>
+                        `;
+                      }).join('')}
+                    </div>
+                  `}
+                `}
+              </section>
+            </div>
+          </div>
+        `;
+      },
+
+      selectCoachStudent(studentId) {
+        STATE.ui.coachSelectedStudentId = studentId;
+        const days = STATE.programs[studentId] || [];
+        if (days.length > 0 && !Object.keys(STATE.ui.coachExpandedDays).some(k => days.some(d => d.id === k))) {
+          STATE.ui.coachExpandedDays[days[0].id] = true;
+        }
+        saveState();
+        this.renderMainView();
+      },
+
+      toggleCoachDay(dayId) {
+        STATE.ui.coachExpandedDays[dayId] = !STATE.ui.coachExpandedDays[dayId];
+        saveState();
+        this.renderMainView();
+      },
+
+      setAllDaysExpanded(expand) {
+        const sid = STATE.ui.coachSelectedStudentId;
+        const days = STATE.programs[sid] || [];
+        days.forEach(d => {
+          STATE.ui.coachExpandedDays[d.id] = expand;
+        });
+        saveState();
+        this.renderMainView();
+      },
+
+      toggleCoachItem(itemId) {
+        STATE.ui.coachExpandedItems[itemId] = !STATE.ui.coachExpandedItems[itemId];
+        saveState();
+        this.renderMainView();
+      },
+
+      handleAddStudent(e) {
+        e.preventDefault();
+        const name = (document.getElementById('newStuName')?.value || '').trim();
+        const code = (document.getElementById('newStuCode')?.value || '').trim();
+        const goal = (document.getElementById('newStuGoal')?.value || '').trim() || 'برنامه عمومی و فرم‌دهی';
+        if (!name || !code) return;
+
+        if (STATE.students.some(s => String(s.code).trim() === code)) {
+          this.showToast('کد ورود تکراری است. کد دیگری وارد کنید.', 'error');
+          return;
+        }
+
+        const newId = uid('stu');
+        const firstDayId = uid('day');
+        STATE.students.push({ id: newId, name, code, goal, phone: '' });
+        STATE.programs[newId] = [{ id: firstDayId, title: 'روز اول تمرینی', items: [] }];
+        STATE.ui.coachSelectedStudentId = newId;
+        STATE.ui.coachExpandedDays[firstDayId] = true;
+        saveState();
+        this.showToast(`شاگرد «${name}» با کد ${this.toFaDigits(code)} اضافه شد.`, 'success');
+        this.renderMainView();
+      },
+
+      deleteStudent(studentId) {
+        const st = STATE.students.find(s => s.id === studentId);
+        if (!st) return;
+        STATE.students = STATE.students.filter(s => s.id !== studentId);
+        delete STATE.programs[studentId];
+        if (STATE.ui.coachSelectedStudentId === studentId) {
+          STATE.ui.coachSelectedStudentId = STATE.students[0] ? STATE.students[0].id : null;
+        }
+        saveState();
+        this.showToast(`شاگرد «${st.name}» حذف شد.`);
+        this.renderMainView();
+      },
+
+      addProgramDay() {
+        const sid = STATE.ui.coachSelectedStudentId;
+        if (!sid) return;
+        const list = STATE.programs[sid] || [];
+        const newDayId = uid('day');
+        list.push({
+          id: newDayId,
+          title: `روز ${this.toFaDigits(list.length + 1)} تمرینی`,
+          items: [],
+        });
+        STATE.programs[sid] = list;
+        STATE.ui.coachExpandedDays[newDayId] = true;
+        saveState();
+        this.showToast('روز تمرینی جدید اضافه شد.', 'success');
+        this.renderMainView();
+      },
+
+      deleteProgramDay(dayId) {
+        const sid = STATE.ui.coachSelectedStudentId;
+        if (!sid) return;
+        STATE.programs[sid] = (STATE.programs[sid] || []).filter(d => d.id !== dayId);
+        delete STATE.ui.coachExpandedDays[dayId];
+        saveState();
+        this.showToast('روز تمرینی حذف شد.');
+        this.renderMainView();
+      },
+
+      updateDayTitle(dayId, title) {
+        const sid = STATE.ui.coachSelectedStudentId;
+        const day = (STATE.programs[sid] || []).find(d => d.id === dayId);
+        if (!day) return;
+        day.title = title.trim() || day.title;
+        saveState();
+      },
+
+      addExerciseToDay(dayId, exId) {
+        const sid = STATE.ui.coachSelectedStudentId;
+        const day = (STATE.programs[sid] || []).find(d => d.id === dayId);
+        const ex = EX_BY_ID[exId];
+        if (!day || !ex) return;
+
+        const newItemId = uid('it');
+        day.items.push({
+          id: newItemId,
+          exId: ex.id,
+          sets: 3,
+          reps: '۱۰ تا ۱۲',
+          rest: '۷۵ ثانیه',
+          note: '',
+        });
+        STATE.ui.coachExpandedDays[dayId] = true;
+        STATE.ui.coachExpandedItems[newItemId] = true;
+        saveState();
+        this.showToast(`«${ex.name}» به برنامه اضافه شد.`, 'success');
+        this.renderMainView();
+      },
+
+      moveExerciseItem(dayId, itemId, dir) {
+        const sid = STATE.ui.coachSelectedStudentId;
+        const day = (STATE.programs[sid] || []).find(d => d.id === dayId);
+        if (!day) return;
+        const idx = day.items.findIndex(x => x.id === itemId);
+        const targetIdx = idx + dir;
+        if (idx < 0 || targetIdx < 0 || targetIdx >= day.items.length) return;
+        const tmp = day.items[idx];
+        day.items[idx] = day.items[targetIdx];
+        day.items[targetIdx] = tmp;
+        saveState();
+        this.renderMainView();
+      },
+
+      deleteExerciseItem(dayId, itemId) {
+        const sid = STATE.ui.coachSelectedStudentId;
+        const day = (STATE.programs[sid] || []).find(d => d.id === dayId);
+        if (!day) return;
+        day.items = day.items.filter(x => x.id !== itemId);
+        delete STATE.ui.coachExpandedItems[itemId];
+        saveState();
+        this.renderMainView();
+      },
+
+      updateExerciseItem(dayId, itemId, field, value) {
+        const sid = STATE.ui.coachSelectedStudentId;
+        const day = (STATE.programs[sid] || []).find(d => d.id === dayId);
+        const item = day ? day.items.find(x => x.id === itemId) : null;
+        if (!item) return;
+        item[field] = value;
+        saveState();
+      },
+
+      // ---------------------------------------------------------------------
+      // COACH-ONLY EXERCISE PICKER MODAL (63 EXERCISES)
+      // ---------------------------------------------------------------------
+      openExercisePicker(dayId) {
+        if (STATE.session.role !== 'coach') {
+          this.showToast('فقط مربی به کتابخانه انتخاب حرکات دسترسی دارد.', 'error');
+          return;
+        }
+        STATE.ui.coachPicker = {
+          open: true,
+          dayId,
+          group: 'all',
+          search: '',
+        };
+        this.renderExercisePickerModal();
+      },
+
+      setPickerGroup(groupId) {
+        STATE.ui.coachPicker.group = groupId;
+        this.renderExercisePickerModal();
+      },
+
+      setPickerSearch(q) {
+        STATE.ui.coachPicker.search = q;
+        this.updatePickerListOnly();
+      },
+
+      getFilteredPickerExercises() {
+        const q = (STATE.ui.coachPicker.search || '').trim().toLowerCase();
+        const grp = STATE.ui.coachPicker.group || 'all';
+        return EXERCISES.filter(ex => {
+          const matchGroup = grp === 'all' || ex.group === grp;
+          const matchText = !q || ex.name.toLowerCase().includes(q) || ex.groupLabel.toLowerCase().includes(q);
+          return matchGroup && matchText;
+        });
+      },
+
+      renderExercisePickerModal() {
+        const picker = STATE.ui.coachPicker;
+        const root = document.getElementById('modalRoot');
+        root.innerHTML = `
+          <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-2xl w-full p-5 sm:p-6 shadow-2xl relative my-auto max-h-[88vh] flex flex-col" onclick="event.stopPropagation()">
+            <div class="flex items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-4">
+              <div>
+                <span class="text-[11px] font-extrabold text-brand-600 dark:text-brand-400">دسترسی اختصاصی مربی</span>
+                <h2 class="text-lg font-black">انتخاب حرکت از کتابخانه (${this.toFaDigits(EXERCISES.length)} حرکت)</h2>
+              </div>
+              <button type="button" onclick="UI.closeModal()" aria-label="بستن" class="p-2 rounded-xl text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div class="py-3 space-y-3">
+              <input
+                type="search"
+                id="pickerSearchInput"
+                value="${UI.escapeHtml(picker.search)}"
+                oninput="UI.setPickerSearch(this.value)"
+                placeholder="جستجوی نام حرکت (مثلاً پرس سینه، نشر جانب، بارفیکس...)"
+                class="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm focus:outline-none focus:border-brand-500"
+              />
+              <div class="flex flex-wrap gap-1.5">
+                <button type="button" onclick="UI.setPickerGroup('all')" class="px-3 py-1 rounded-full text-xs font-bold transition ${picker.group === 'all' ? 'bg-brand-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'}">
+                  همه (${this.toFaDigits(EXERCISES.length)})
+                </button>
+                ${GROUPS.map(g => {
+                  const cnt = EXERCISES.filter(e => e.group === g.id).length;
+                  const active = picker.group === g.id;
+                  return `
+                    <button type="button" onclick="UI.setPickerGroup('${g.id}')" class="px-3 py-1 rounded-full text-xs font-bold transition ${active ? 'bg-brand-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'}">
+                      ${g.label} (${this.toFaDigits(cnt)})
+                    </button>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+
+            <div id="pickerListContainer" class="overflow-y-auto flex-1 space-y-2 pr-1"></div>
+          </div>
+        `;
+        root.classList.remove('hidden');
+        root.classList.add('flex');
+        root.onclick = () => this.closeModal();
+        this.updatePickerListOnly();
+      },
+
+      updatePickerListOnly() {
+        const container = document.getElementById('pickerListContainer');
+        if (!container) return;
+        const list = this.getFilteredPickerExercises();
+        const dayId = STATE.ui.coachPicker.dayId;
+
+        if (list.length === 0) {
+          container.innerHTML = '<div class="text-center py-8 text-xs sm:text-sm text-slate-500">حرکتی با این عبارت پیدا نشد.</div>';
+          return;
+        }
+
+        container.innerHTML = list.map(ex => `
+          <div class="flex items-center justify-between gap-3 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200/70 dark:border-slate-700/70">
+            <div class="min-w-0">
+              <div class="font-bold text-xs sm:text-sm truncate">${UI.escapeHtml(ex.name)}</div>
+              <div class="text-[11px] text-slate-500 dark:text-slate-400">${UI.escapeHtml(ex.groupLabel)}</div>
+            </div>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <button type="button" onclick="UI.openExerciseAnimation('${ex.id}', null)" class="px-2.5 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-[11px] font-bold hover:border-brand-400 transition">
+                نمایش حرکت
+              </button>
+              <button type="button" onclick="UI.addExerciseToDay('${dayId}', '${ex.id}')" class="px-3 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-[11px] font-bold transition">
+                + افزودن
+              </button>
+            </div>
+          </div>
+        `).join('');
+      },
+
+      // ---------------------------------------------------------------------
+      // STUDENT PANEL (ONLY ASSIGNED DAYS & EXERCISES)
+      // ---------------------------------------------------------------------
+      renderStudentPanel() {
+        const student = STATE.students.find(s => s.id === STATE.session.userId);
+        if (!student) {
+          return `
+            <div class="bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-200 dark:border-slate-800 text-center space-y-3">
+              <p class="text-sm text-slate-600 dark:text-slate-300">حساب شاگرد پیدا نشد.</p>
+              <button type="button" onclick="UI.logout()" class="px-4 py-2 rounded-xl bg-brand-600 text-white text-xs font-bold">بازگشت</button>
+            </div>
+          `;
+        }
+
+        const days = STATE.programs[student.id] || [];
+        const dayIdx = Math.min(Math.max(0, STATE.ui.studentSelectedDayIndex || 0), Math.max(0, days.length - 1));
+        const activeDay = days[dayIdx] || null;
+
+        return `
+          <div class="space-y-6">
+            <section class="bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-6 border border-slate-200/80 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <span class="text-xs font-extrabold text-emerald-600 dark:text-emerald-400">پنل اختصاصی شاگرد</span>
+                <h1 class="text-xl sm:text-2xl font-black mt-0.5">خوش آمدید، ${UI.escapeHtml(student.name)}</h1>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  هدف: <strong>${UI.escapeHtml(student.goal || 'تناسب اندام')}</strong> · مربی شما: <strong>${UI.escapeHtml(STATE.coachProfile.name)}</strong>
+                </p>
+              </div>
+              <button type="button" onclick="UI.navigate('contact')" class="px-4 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs sm:text-sm font-bold transition self-start sm:self-auto">
+                ارسال تیکت به مربی
+              </button>
+            </section>
+
+            ${days.length === 0 ? `
+              <section class="bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-200/80 dark:border-slate-800 text-center space-y-2">
+                <h2 class="text-base font-extrabold">هنوز برنامه‌ای برای شما ثبت نشده است</h2>
+                <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+                  مربی شما به‌زودی برنامه تمرینی روزانه را در پنل شما قرار می‌دهد.
+                </p>
+              </section>
+            ` : `
+              <section class="bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-6 border border-slate-200/80 dark:border-slate-800 space-y-5">
+                <!-- Day Selector Tabs -->
+                <div class="flex flex-wrap gap-2">
+                  ${days.map((d, idx) => `
+                    <button
+                      type="button"
+                      onclick="UI.selectStudentDay(${idx})"
+                      class="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition ${
+                        idx === dayIdx
+                          ? 'bg-brand-600 text-white shadow-sm'
+                          : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                      }"
+                    >
+                      ${UI.escapeHtml(d.title)}
+                    </button>
+                  `).join('')}
+                </div>
+
+                <!-- Assigned Exercises List -->
+                ${!activeDay || activeDay.items.length === 0 ? `
+                  <div class="text-center py-8 text-xs sm:text-sm text-slate-500">در این روز هنوز حرکتی ثبت نشده است.</div>
+                ` : `
+                  <div class="space-y-3">
+                    ${activeDay.items.map((item, idx) => {
+                      const ex = EX_BY_ID[item.exId];
+                      if (!ex) return '';
+                      const isDone = Boolean(STATE.completedItems[item.id]);
+                      return `
+                        <div class="rounded-2xl p-4 border transition ${
+                          isDone
+                            ? 'bg-emerald-50/60 dark:bg-emerald-950/25 border-emerald-300 dark:border-emerald-800/60'
+                            : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200/80 dark:border-slate-700'
+                        }">
+                          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div class="space-y-1">
+                              <div class="flex flex-wrap items-center gap-2">
+                                <span class="w-6 h-6 rounded-lg bg-slate-200 dark:bg-slate-700 text-xs font-black flex items-center justify-center">
+                                  ${this.toFaDigits(idx + 1)}
+                                </span>
+                                <h3 class="font-extrabold text-sm sm:text-base ${isDone ? 'line-through text-slate-500' : ''}">
+                                  ${UI.escapeHtml(ex.name)}
+                                </h3>
+                                <span class="text-[11px] px-2 py-0.5 rounded-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-500">
+                                  ${UI.escapeHtml(ex.groupLabel)}
+                                </span>
+                              </div>
+                              <div class="text-xs font-bold text-brand-600 dark:text-brand-400">
+                                ${this.toFaDigits(item.sets)} ست · ${UI.toFaDigits(item.reps)} تکرار · استراحت: ${UI.toFaDigits(item.rest)}
+                              </div>
+                              ${item.note ? `
+                                <p class="text-xs text-slate-600 dark:text-slate-300 pt-1">
+                                  <strong>توضیح مربی:</strong> ${UI.escapeHtml(item.note)}
+                                </p>
+                              ` : ''}
+                            </div>
+
+                            <div class="flex items-center gap-2 self-end sm:self-center shrink-0">
+                              <button
+                                type="button"
+                                onclick="UI.openExerciseAnimation('${ex.id}', '${item.id}')"
+                                class="px-3.5 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold transition flex items-center gap-1.5"
+                              >
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
+                                </svg>
+                                <span>انیمیشن حرکت</span>
+                              </button>
+                              <button
+                                type="button"
+                                onclick="UI.toggleItemDone('${item.id}')"
+                                class="px-3 py-2 rounded-xl border text-xs font-bold transition ${
+                                  isDone
+                                    ? 'bg-emerald-600 border-emerald-600 text-white'
+                                    : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200'
+                                }"
+                              >
+                                ${isDone ? 'انجام شد ✓' : 'ثبت انجام'}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      `;
+                    }).join('')}
+                  </div>
+                `}
+              </section>
+            `}
+          </div>
+        `;
+      },
+
+      selectStudentDay(idx) {
+        STATE.ui.studentSelectedDayIndex = idx;
+        saveState();
+        this.renderMainView();
+      },
+
+      toggleItemDone(itemId) {
+        STATE.completedItems[itemId] = !STATE.completedItems[itemId];
+        saveState();
+        this.renderMainView();
+      },
+
+      // ---------------------------------------------------------------------
+      // EXERCISE DETAILS MODAL
+      // The animation area is intentionally EMPTY. To add an animation later,
+      // fill in UI.mountExerciseAnimation() below (it receives the empty slot).
+      // ---------------------------------------------------------------------
+      openExerciseAnimation(exId, itemId = null) {
+        const meta = EX_BY_ID[exId];
+        if (!meta) return;
+
+        if (this.animCleanup) {
+          this.animCleanup();
+          this.animCleanup = null;
+        }
+
+        let assignedItem = null;
+        if (itemId) {
+          Object.values(STATE.programs).forEach(days => {
+            (days || []).forEach(d => {
+              const found = (d.items || []).find(it => it.id === itemId);
+              if (found) assignedItem = found;
+            });
+          });
+        }
+
+        const root = document.getElementById('modalRoot');
+        root.innerHTML = `
+          <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-2xl w-full p-5 sm:p-6 shadow-2xl relative my-auto max-h-[92vh] overflow-y-auto" onclick="event.stopPropagation()">
+            <div class="flex items-start justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3.5">
+              <div>
+                <span class="text-xs font-extrabold px-2.5 py-0.5 rounded-lg bg-brand-100 text-brand-700 dark:bg-brand-900/50 dark:text-brand-300">
+                  ${UI.escapeHtml(meta.groupLabel)}
+                </span>
+                <h2 class="text-lg sm:text-xl font-black mt-1">${UI.escapeHtml(meta.name)}</h2>
+              </div>
+              <button type="button" onclick="UI.closeModal()" aria-label="بستن" class="p-2 rounded-xl text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <!-- ANIMATION SLOT (empty on purpose) -->
+            <div id="exerciseAnimSlot"
+                 data-exercise-id="${meta.id}" data-group="${meta.group}" data-arch="${meta.arch}" data-equip="${meta.equip}"
+                 class="mt-4 min-h-[260px] rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 flex items-center justify-center text-xs font-bold text-slate-400 dark:text-slate-500">
+              محل انیمیشن حرکت
+            </div>
+
+            ${assignedItem ? `
+              <div class="mt-3 p-3.5 rounded-2xl bg-brand-50/70 dark:bg-brand-950/30 border border-brand-200/70 dark:border-brand-800/50 text-xs space-y-1">
+                <div class="font-extrabold text-brand-700 dark:text-brand-300">
+                  تنظیم برنامه شما: ${this.toFaDigits(assignedItem.sets)} ست × ${this.toFaDigits(assignedItem.reps)} تکرار · استراحت ${this.toFaDigits(assignedItem.rest)}
+                </div>
+                ${assignedItem.note ? `<p class="text-slate-700 dark:text-slate-300">${UI.escapeHtml(assignedItem.note)}</p>` : ''}
+              </div>
+            ` : ''}
+
+            <div class="mt-4 space-y-1.5">
+              <div class="text-xs font-extrabold text-slate-700 dark:text-slate-300">نکات اجرایی حرکت:</div>
+              <ul class="space-y-1 text-xs text-slate-600 dark:text-slate-400 list-disc list-inside">
+                ${meta.cues.map(c => `<li>${UI.escapeHtml(c)}</li>`).join('')}
+              </ul>
+            </div>
+          </div>
+        `;
+
+        root.classList.remove('hidden');
+        root.classList.add('flex');
+        root.onclick = () => this.closeModal();
+
+        this.mountExerciseAnimation(document.getElementById('exerciseAnimSlot'), meta, assignedItem);
+      },
+
+      // Hook for the future animation. Put your code here, e.g.:
+      //   slot.innerHTML = '<svg>…</svg>';
+      // If it starts a timer/rAF, set  this.animCleanup = () => { …stop it… };
+      mountExerciseAnimation(slot, meta, assignedItem) {
+        // intentionally empty
+      },
+
+      // ---------------------------------------------------------------------
+      // MASTER RENDER ORCHESTRATOR
+      // ---------------------------------------------------------------------
+      renderMainView() {
+        const container = document.getElementById('mainView');
+        if (!container) return;
+
+        if (STATE.currentRoute === 'about') {
+          container.innerHTML = this.renderAbout();
+        } else if (STATE.currentRoute === 'contact') {
+          container.innerHTML = this.renderContact();
+        } else if (STATE.currentRoute === 'panel') {
+          container.innerHTML = this.renderPanel();
+        } else {
+          container.innerHTML = this.renderHome();
+          this.updateFitnessCalc();
+        }
+      },
+
+      renderAll() {
+        this.renderChrome();
+        this.renderMainView();
+      },
+    };
+
+    window.UI = UI;
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        const modal = document.getElementById('modalRoot');
+        if (modal && !modal.classList.contains('hidden')) {
+          UI.closeModal();
+          return;
+        }
+        UI.toggleDrawer(false);
+      }
+    });
+
+    // Site logo (transparent PNG, embedded) -> header, drawer, favicon
+    const SITE_LOGO = 'data:image/png;base64,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';
+    document.querySelectorAll('img[data-logo]').forEach(i => { i.src = SITE_LOGO; });
+    const siteFavicon = document.getElementById('siteFavicon');
+    if (siteFavicon) siteFavicon.href = SITE_LOGO;
+
+    UI.renderAll();
+  </script>
 </body>
 </html>
